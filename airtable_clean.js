@@ -1,13 +1,12 @@
 const { retrieve } = require('./airtable_retrieve.js');
 const { base } = require('./airtable_connection.js');
-
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+const { sleep } = require('./util.js');
+const args = require('minimist')(process.argv.slice(2));
+//node airtable_clean.js --sheet="Table 9" --field="Name" --value="test"
 
 function cleanEntry(id) {
   return new Promise((resolve) => {
-    base(table).destroy([id], (err, deletedRecords) => {
+    base(args.sheet).destroy([id], (err, deletedRecords) => {
       if (err) {
         console.error(err);
         return;
@@ -17,13 +16,12 @@ function cleanEntry(id) {
   });
 }
 
-const table = 'Table 9';
 async function clean() {
   let count = 0;
-  let retrievedEntries = await retrieve(table, 'Name', 'test');
+  let retrievedEntries = await retrieve(args.sheet, args.field, args.value);
 
-  for (i = 0; i < retrievedEntries.length; i++) {
-    await sleep(500);
+  for (let i = 0; i < retrievedEntries.length; i++) {
+    await sleep(300);
     await cleanEntry(retrievedEntries[i].id);
     count++;
   }

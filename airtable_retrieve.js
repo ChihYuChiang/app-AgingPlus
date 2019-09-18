@@ -1,17 +1,16 @@
 const { base } = require('./airtable_connection.js');
+const { sleep } = require('./util.js');
 
 exports.retrieve = function(targetSheet, targetField, targetValue) {
   return new Promise((resolve, reject) => {
     let table = [];
     base(targetSheet)
       .select({
-        // Selecting the first 3 records in Grid view:
-        maxRecords: 3,
         view: "Grid view",
         cellFormat: "json"
       })
       .eachPage(
-        function page(records, fetchNextPage) {
+        async function page(records, fetchNextPage) {
           // This function (`page`) will get called for each page of records.
     
           records.forEach((record) => {
@@ -26,6 +25,7 @@ exports.retrieve = function(targetSheet, targetField, targetValue) {
           // To fetch the next page of records, call `fetchNextPage`.
           // If there are more records, `page` will get called again.
           // If there are no more records, `done` will get called.
+          await sleep(300);
           fetchNextPage();
         },
         function done(err) {
@@ -34,6 +34,8 @@ exports.retrieve = function(targetSheet, targetField, targetValue) {
             return;
           }
           let targetEntries = table.filter((entry) => entry[targetField] === targetValue);
+
+          console.log('Retrieved', targetEntries.length, 'records.');
           resolve(targetEntries);
         }
       );

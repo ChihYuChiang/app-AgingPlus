@@ -90,3 +90,5 @@ typings/
 # Customized
 data/
 ref/
+env/
+.vscode/

@@ -7,8 +7,8 @@ const cred = yaml.safeLoad(fs.readFileSync('../ref/credential.yml', 'utf8'));
 
 //Create LINE SDK config
 const config = {
-  channelAccessToken: process.env.CHANNEL_ACCESS_TOKEN,
-  channelSecret: process.env.CHANNEL_SECRET,
+  channelAccessToken: cred.LINE.channelAccessToken,
+  channelSecret: cred.LINE.channelSecret,
 };
 
 //Create LINE SDK client
@@ -18,7 +18,7 @@ const client = new line.Client(config);
 const app = express();
 
 //Register a webhook handler with middleware
-app.post('/callback', line.middleware(config), (req, res) => {
+app.post('/webhook', line.middleware(config), (req, res) => {
   Promise
     .all(req.body.events.map(handleEvent))
     .then((result) => res.json(result))
@@ -30,27 +30,23 @@ app.post('/callback', line.middleware(config), (req, res) => {
 
 //Event handler
 function handleEvent(event) {
-
   console.log(JSON.stringify(event));
 
-  // if (event.type !== 'message' || event.message.type !== 'text') {
-  //   // ignore non-text-message event
-  //   return Promise.resolve(null);
-  // }
+  if (event.type !== 'message' || event.message.type !== 'text') {
+    // ignore non-text-message event
+    return Promise.resolve(null);
+  }
 
   //Create a echoing text message
-  const echo = { type: 'text', text: JSON.stringify(event) };
-  // const echo = { type: 'text', text: event.message.text };
+  // const echo = { type: 'text', text: JSON.stringify(event) };
+  const echo = { type: 'text', text: event.message.text };
 
   //Use reply API
   return client.replyMessage(event.replyToken, echo);
 }
 
-//Listen on port
-const port = process.env.PORT || 3000;
-app.listen(port, () => {
-  console.log(`listening on ${port}`);
-});
+module.exports = app;
+
 
 
 // const message = {

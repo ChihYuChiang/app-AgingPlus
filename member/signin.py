@@ -8,11 +8,6 @@ import json
 import uuid
 import logging
  
-# MODIFY
-USER_POOL_ID = 'us-east-1_A4RWHC0jQ'
-CLIENT_ID = '4ku8g59jqoibve7l7c5hhpnglf'
-CLIENT_SECRET = '1c3albnteqekdmrkf7s0ma5dj7ffpvjmltmu452qv0v6tmmkiu7n'
-
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 

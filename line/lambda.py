@@ -4,6 +4,8 @@ import sys
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
+#https://github.com/line/line-bot-sdk-python
+#https://developers.line.biz/en/reference/messaging-api/
 
 
 # get channel_secret and channel_access_token from your environment variable
@@ -17,36 +19,31 @@ if channel_access_token is None:
     sys.exit(1)
 
 line_bot_api = LineBotApi(channel_access_token)
-handler = WebhookHandler(channel_secret)
+line_handler = WebhookHandler(channel_secret)
 
 
 def lambda_handler(requestEvent, context):
     #Get X-Line-Signature header value
-    signature = requestEvent.headers['X-Line-Signature']    
+    signature = requestEvent['headers']['X-Line-Signature']    
     
     #Get request body as text    
-    body = requestEvent.get_data(as_text=True)
+    body = requestEvent['body']
     print(body)
 
-    #handle webhook body
+    #Check the body-signature match and handle the event
     try:
-        handler.handle(body, signature)
+        line_handler.handle(body, signature)
     except InvalidSignatureError:
         print("Invalid signature. Please check your channel access token/channel secret.")
         abort(400)
 
     return {'statusCode': 200, 'body': 'OK'}
 
-    # #if event is MessageEvent and message is TextMessage, then echo text
-    # for event in events:
-    #     if not isinstance(event, MessageEvent):
-    #         continue
-    #     if not isinstance(event.message, TextMessage):
-    #         continue
+#Handle particular event type and message type
+@line_handler.add(MessageEvent, TextMessage)
+def handle_message(event):
+    profile = line_bot_api.get_profile(event.source.user_id)
+    message = event.message.text
+    response = 'Hello, ' + profile.display_name
 
-    #     line_bot_api.reply_message(
-    #         event.reply_token,
-    #         TextSendMessage(text=event.message.text)
-    #     )
-
-    return {'statusCode': 200, 'body': 'OK'}
+    line_bot_api.reply_message(event.reply_token, TextSendMessage(text=response))

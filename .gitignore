@@ -92,3 +92,4 @@ data/
 ref/
 .pyenv/
 .vscode/
+*.zip

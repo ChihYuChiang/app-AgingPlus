@@ -1,7 +1,7 @@
 Copy-Item "C:\Users\chihy\OneDrive\Ongoing - OneDrive\app-AgingPlus\line\lambda.py" `
-	-Destination "C:\Users\chihy\Desktop\Line"
+	-Destination "C:\Users\chihy\OneDrive\Ongoing - OneDrive\app-AgingPlus\line\build"
 
-Compress-Archive -path "C:\Users\chihy\Desktop\Line" `
+Compress-Archive -path "C:\Users\chihy\OneDrive\Ongoing - OneDrive\app-AgingPlus\line\build" `
 	-destinationpath "C:\Users\chihy\OneDrive\Ongoing - OneDrive\app-AgingPlus\line\Line.zip" `
 	-compressionlevel optimal -Force
 

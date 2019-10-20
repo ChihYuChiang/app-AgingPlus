@@ -90,6 +90,7 @@ typings/
 # Customized
 data/
 ref/
+build/
 .pyenv/
 .vscode/
 *.zip

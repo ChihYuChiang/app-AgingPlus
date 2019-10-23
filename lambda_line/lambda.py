@@ -55,7 +55,7 @@ def handle_message(event):
 
 #Handle FollowEvent (when someone adds this account as friend)
 @line_handler.add(FollowEvent)
-def handle_message(event):
+def handle_follow(event):
     parsedEvent = parseEvent(event)
 
     response = 'Hello, ' + parsedEvent['profile'].display_name

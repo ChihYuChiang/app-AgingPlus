@@ -22,6 +22,12 @@ line_bot_api = LineBotApi(channel_access_token)
 line_handler = WebhookHandler(channel_secret)
 
 
+def parseEvent(event):
+    profile = line_bot_api.get_profile(event.source.user_id)
+    message = event.message
+
+    return {'profile': profile, 'message': message}
+
 def lambda_handler(requestEvent, context):
     #Get X-Line-Signature header value
     signature = requestEvent['headers']['X-Line-Signature']    
@@ -39,11 +45,18 @@ def lambda_handler(requestEvent, context):
 
     return {'statusCode': 200, 'body': 'OK'}
 
-#Handle particular event type and message type
+#Handle MessageEvent and TextMessage type
 @line_handler.add(MessageEvent, TextMessage)
 def handle_message(event):
-    profile = line_bot_api.get_profile(event.source.user_id)
-    message = event.message.text
-    response = 'Hello, ' + profile.display_name
+    parsedEvent = parseEvent(event)
 
+    response = parsedEvent.text
+    line_bot_api.reply_message(event.reply_token, TextSendMessage(text=response))
+
+#Handle FollowEvent (when someone adds this account as friend)
+@line_handler.add(FollowEvent)
+def handle_message(event):
+    parsedEvent = parseEvent(event)
+
+    response = 'Hello, ' + parsedEvent['profile'].display_name
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=response))

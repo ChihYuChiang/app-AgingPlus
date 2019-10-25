@@ -1,5 +1,9 @@
 const Airtable = require("airtable");
+
 const base = new Airtable({ apiKey: process.env.AIRTABLE_APIKEY }).base(process.env.BASE_ID);
+const AIR_EVENT_TYPES = {
+  FOLLOW: 'follow'
+};
 
 function handlerBuilder(...funcs) {
   return (event, context) => {
@@ -10,6 +14,8 @@ function handlerBuilder(...funcs) {
 
 
 async function handle_follow(jsonBody) {
+  if(jsonBody.eventType !== AIR_EVENT_TYPES.FOLLOW) { return }
+
   const lineUserId = jsonBody.lineUserId;
   const lineDisplayName = jsonBody.lineDisplayName;
 
@@ -42,8 +48,4 @@ async function handle_follow(jsonBody) {
 
 exports.handler = handlerBuilder(
   handle_follow
-); 
-
-// handle_follow({
-//   lineUserId: 's', lineDisplayName: 'fsfs'
-// }).then((ee) => {console.log(ee)})
+);

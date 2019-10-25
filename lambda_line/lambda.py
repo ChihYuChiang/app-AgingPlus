@@ -1,5 +1,8 @@
 import os
 import sys
+import json
+from boto3 import client as boto3_client
+lambda_client = boto3_client('lambda', region_name="us-east-1")
 
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
@@ -8,7 +11,7 @@ from linebot.models import MessageEvent, TextMessage, TextSendMessage
 #https://developers.line.biz/en/reference/messaging-api/
 
 
-# get channel_secret and channel_access_token from your environment variable
+#Get channel_secret and channel_access_token from your environment variable
 channel_secret = os.getenv('LINE_CHANNEL_SECRET', None)
 channel_access_token = os.getenv('LINE_CHANNEL_ACCESS_TOKEN', None)
 if channel_secret is None:
@@ -20,6 +23,8 @@ if channel_access_token is None:
 
 line_bot_api = LineBotApi(channel_access_token)
 line_handler = WebhookHandler(channel_secret)
+class AIR_EVENT_TYPES():
+    FOLLOW = 'follow'
 
 
 def parseEvent(event):
@@ -60,3 +65,18 @@ def handle_follow(event):
 
     response = 'Hello, ' + parsedEvent['profile'].display_name
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=response))
+
+    invokeAirtable({
+        'eventType': AIR_EVENT_TYPES.FOLLOW 
+        'lineUserId': event.source.user_id,
+        'lineDisplayName': parsedEvent['profile'].display_name
+    })
+
+
+def invokeAirtable(payload):
+    response = lambda_client.invoke(
+        FunctionName="Airtable",
+        InvocationType='RequestResponse',
+        Payload=json.dump(payload)
+    )
+    print(response)

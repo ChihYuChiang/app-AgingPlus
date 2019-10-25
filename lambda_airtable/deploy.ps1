@@ -1,7 +1,7 @@
 #Path contains build folder and lambda.py file
 $path = "C:\Users\chihy\OneDrive\Ongoing - OneDrive\app-AgingPlus\lambda_airtable\"
 
-Copy-Item $($path + 'add-new-member.js') `
+Copy-Item $($path + 'lambda.js') `
 	-Destination $($path + 'build')
 
 Compress-Archive -Path $($path + 'build\*'), $($path + 'node_modules') `

@@ -6,7 +6,7 @@ lambda_client = boto3_client('lambda', region_name="us-east-1")
 
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
-from linebot.models import MessageEvent, TextMessage, TextSendMessage
+from linebot.models import FollowEvent, MessageEvent, TextMessage, TextSendMessage
 #https://github.com/line/line-bot-sdk-python
 #https://developers.line.biz/en/reference/messaging-api/
 
@@ -29,7 +29,7 @@ class AIR_EVENT_TYPES():
 
 def parseEvent(event):
     profile = line_bot_api.get_profile(event.source.user_id)
-    message = event.message
+    message = event.message.text
 
     return {'profile': profile, 'message': message}
 
@@ -39,7 +39,6 @@ def lambda_handler(requestEvent, context):
     
     #Get request body as text    
     body = requestEvent['body']
-    print(body)
 
     #Check the body-signature match and handle the event
     try:
@@ -55,7 +54,7 @@ def lambda_handler(requestEvent, context):
 def handle_message(event):
     parsedEvent = parseEvent(event)
 
-    response = parsedEvent.text
+    response = parsedEvent['message']
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=response))
 
 #Handle FollowEvent (when someone adds this account as friend)
@@ -67,7 +66,7 @@ def handle_follow(event):
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=response))
 
     invokeAirtable({
-        'eventType': AIR_EVENT_TYPES.FOLLOW 
+        'eventType': AIR_EVENT_TYPES.FOLLOW,
         'lineUserId': event.source.user_id,
         'lineDisplayName': parsedEvent['profile'].display_name
     })
@@ -77,6 +76,6 @@ def invokeAirtable(payload):
     response = lambda_client.invoke(
         FunctionName="Airtable",
         InvocationType='RequestResponse',
-        Payload=json.dump(payload)
+        Payload=json.dumps(payload)
     )
     print(response)

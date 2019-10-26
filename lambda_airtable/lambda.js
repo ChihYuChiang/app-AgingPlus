@@ -7,8 +7,7 @@ const AIR_EVENT_TYPES = {
 
 function handlerBuilder(...funcs) {
   return (event, context) => {
-    const jsonBody = JSON.parse(event.body);
-    for(let func of funcs) { func(jsonBody); }
+    for(let func of funcs) { func(event); }
   };
 }
 

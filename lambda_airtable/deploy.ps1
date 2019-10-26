@@ -4,9 +4,10 @@ $path = "C:\Users\chihy\OneDrive\Ongoing - OneDrive\app-AgingPlus\lambda_airtabl
 Copy-Item $($path + 'lambda.js') `
 	-Destination $($path + 'build')
 
-Compress-Archive -Path $($path + 'build\*'), $($path + 'node_modules') `
-	-destinationpath $($path + 'Airtable.zip') `
-	-compressionlevel optimal -Force
+#Use 7z to compress instead of powershell (which sucks) to make the file path compatible in linux systems
+cd "C:\Program Files\7-Zip\"
+.\7z a $($path + 'Airtable.zip') `
+	$($path + 'build\*') $($path + 'node_modules')
 
 aws lambda update-function-code `
     --function-name Airtable `

@@ -4,7 +4,7 @@ $path = "C:\Users\chihy\OneDrive\Ongoing - OneDrive\app-AgingPlus\lambda_line\"
 Copy-Item $($path + 'lambda.py') `
 	-Destination $($path + 'build')
 
-cd "C:\Program Files\7-Zip\"
+Set-Location "C:\Program Files\7-Zip\"
 .\7z a $($path + 'Line.zip') `
 	$($path + 'build\*')
 

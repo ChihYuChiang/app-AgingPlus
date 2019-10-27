@@ -5,7 +5,8 @@ const { sleepPromise, filterUndefined } = require('./util');
 const base = new Airtable({ apiKey: process.env.AIRTABLE_APIKEY }).base(process.env.BASE_ID);
 const AIR_EVENT_TYPES = {
   FOLLOW: 'follow',
-  REMINDER: 'reminder'
+  REMINDER: 'reminder',
+  NEXT_CLASS: 'next_class'
 };
 
 function handlerBuilder(...funcs) {

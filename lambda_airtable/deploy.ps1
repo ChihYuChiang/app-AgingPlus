@@ -5,7 +5,7 @@ Copy-Item $($path + 'lambda.js'), $($path + 'util.js') `
 	-Destination $($path + 'build')
 
 #Use 7z to compress instead of powershell (which sucks) to make the file path compatible in linux systems
-cd "C:\Program Files\7-Zip\"
+Set-Location "C:\Program Files\7-Zip\"
 .\7z a $($path + 'Airtable.zip') `
 	$($path + 'build\*') $($path + 'node_modules')
 

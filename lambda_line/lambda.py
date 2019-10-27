@@ -26,6 +26,7 @@ line_handler = WebhookHandler(channel_secret)
 class AIR_EVENT_TYPES():
     FOLLOW = 'follow'
     REMINDER = 'reminder'
+    NEXT_CLASS = 'next_class'
 
 
 def lambda_handler(requestEvent, context):
@@ -46,16 +47,17 @@ def lambda_handler(requestEvent, context):
 
 
 #--Handle MessageEvent and TextMessage type
-#General response
 @line_handler.add(MessageEvent, TextMessage)
 def handle_message(event):
-    if event.message.text == 'r': cmd_reminder()
+    if event.message.text == 'r': cmd_reminder(event)
 
-    response = event.message.text
-    line_bot_api.reply_message(event.reply_token, TextSendMessage(text=response))
+    #Default reply replicates the incoming message
+    #Reply token can be used only once -> The default reply will not take place if the reply has been made in cmd process
+    reply = event.message.text
+    line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
 
 #'r' -> Reminder of upcoming class
-def cmd_reminder():
+def cmd_reminder(event):
     '''
     Success response = 
     [{'Status': 'handle_reminder: OK', 'Data': [{'id': 'recGPvFMiUDaoO4', 'lineUserId': 'U9ae6458c650504a3e8380a1046e0f', 'lineDisplayName': 'CY', 'messageTime': '2019-10-28T13:13:00.000Z', 'messageContent': "Hello, this is a response from air."}]}]
@@ -64,12 +66,16 @@ def cmd_reminder():
         'eventType': AIR_EVENT_TYPES.REMINDER
     })
 
+    remindedInd = []
     for target in resPayload[0]['Data']:
         line_bot_api.push_message(
             target['lineUserId'],
             TextSendMessage(text=target['messageContent'])
         )
-        print('Sent msg to ', target['lineUserId'], '.')
+        remindedInd.append(target['lineDisplayName'])
+    
+    reply = 'Reminder sent to {}.'.format(', '.join(remindedInd))
+    line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
 
 
 #--Handle FollowEvent (when someone adds this account as friend)
@@ -77,8 +83,8 @@ def cmd_reminder():
 def handle_follow(event):
     userProfile = line_bot_api.get_profile(event.source.user_id)
 
-    response = 'Hello, ' + userProfile.display_name
-    line_bot_api.reply_message(event.reply_token, TextSendMessage(text=response))
+    reply = 'Hello, ' + userProfile.display_name
+    line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
 
     invokeAirtable({
         'eventType': AIR_EVENT_TYPES.FOLLOW,

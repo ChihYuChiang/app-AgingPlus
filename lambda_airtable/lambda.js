@@ -1,6 +1,6 @@
 const Airtable = require("airtable");
 const moment = require('moment');
-const { sleep } = require('./util');
+const { sleepPromise, filterUndefined } = require('./util');
 
 const base = new Airtable({ apiKey: process.env.AIRTABLE_APIKEY }).base(process.env.BASE_ID);
 const AIR_EVENT_TYPES = {
@@ -12,8 +12,9 @@ function handlerBuilder(...funcs) {
   return async (event, context) => {
     //Concurrent fire all handlers
     let promises = funcs.map((func) => func(event));
-    let results = await Promise.all(promises);
+    let results = filterUndefined(await Promise.all(promises));
 
+    //Res with an array with all activated handlers
     console.log(results)
     return results;
   };
@@ -71,6 +72,7 @@ async function handle_reminder(event) {
               let entry = {
                   "id": record.id,
                   "lineUserId": record.fields.LineUserId,
+                  "lineDisplayName": record.fields.LineDisplayName,
                   "messageTime": moment(record.fields.MessageTime),
                   "messageContent": record.fields.MessageContent
               };
@@ -80,7 +82,7 @@ async function handle_reminder(event) {
             //To fetch the next page of records, call `fetchNextPage`.
             //If there are more records, `page` will get called again.
             //If there are no more records, `done` will get called.
-            await sleep(300);
+            await sleepPromise(300);
             fetchNextPage();
           },
           function done(err) {
@@ -101,7 +103,7 @@ async function handle_reminder(event) {
   };
 
   const targets = await idTargets();
-  return { Status: 'handle_reminder: OK', Payload: targets };
+  return { Status: 'handle_reminder: OK', Data: targets };
 };
 
 

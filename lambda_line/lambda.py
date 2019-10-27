@@ -9,7 +9,7 @@ from linebot.exceptions import InvalidSignatureError
 from linebot.models import FollowEvent, MessageEvent, TextMessage, TextSendMessage
 #https://github.com/line/line-bot-sdk-python
 #https://developers.line.biz/en/reference/messaging-api/
-
+#TODO: encrypt keys on AWS
 
 #Get channel_secret and channel_access_token from your environment variable
 channel_secret = os.getenv('LINE_CHANNEL_SECRET', None)
@@ -64,11 +64,20 @@ def handle_message(event):
 
 #'r' -> Reminder of upcoming class
 def cmd_reminder(message):
+    '''
+    Success response = 
+    [{'Status': 'handle_reminder: OK', 'Data': [{'id': 'recGPvFMiUDaoO4', 'lineUserId': 'U9ae6458c650504a3e8380a1046e0f', 'lineDisplayName': 'CY', 'messageTime': '2019-10-28T13:13:00.000Z', 'messageContent': "Hello, this is a response from air."}]}]
+    '''
     resPayload = (message == 'r') and invokeAirtable({
         'eventType': AIR_EVENT_TYPES.REMINDER
     })
 
-    print(resPayload)
+    for target in resPayload[0]['Data']:
+        line_bot_api.push_message(
+            target['lineUserId'],
+            TextSendMessage(text=target['messageContent'])
+        )
+        print('Sent msg to ', target['lineUserId'], '.')
 
 
 #--Handle FollowEvent (when someone adds this account as friend)
@@ -92,5 +101,7 @@ def invokeAirtable(payload):
         InvocationType='RequestResponse',
         Payload=json.dumps(payload)
     )
+
+    #`resPayload` is an array with result of all activated air handlers.
     resPayload = json.loads(res['Payload'].read().decode("utf-8"))
     return resPayload

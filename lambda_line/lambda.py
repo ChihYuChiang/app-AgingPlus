@@ -28,12 +28,6 @@ class AIR_EVENT_TYPES():
     REMINDER = 'reminder'
 
 
-def parseEvent(event):
-    profile = line_bot_api.get_profile(event.source.user_id)
-    message = event.message.text
-
-    return {'profile': profile, 'message': message}
-
 def lambda_handler(requestEvent, context):
     #Get X-Line-Signature header value
     signature = requestEvent['headers']['X-Line-Signature']    
@@ -55,20 +49,18 @@ def lambda_handler(requestEvent, context):
 #General response
 @line_handler.add(MessageEvent, TextMessage)
 def handle_message(event):
-    parsedEvent = parseEvent(event)
+    if event.message.text == 'r': cmd_reminder()
 
-    cmd_reminder(parsedEvent['message'])
-
-    response = parsedEvent['message']
+    response = event.message.text
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=response))
 
 #'r' -> Reminder of upcoming class
-def cmd_reminder(message):
+def cmd_reminder():
     '''
     Success response = 
     [{'Status': 'handle_reminder: OK', 'Data': [{'id': 'recGPvFMiUDaoO4', 'lineUserId': 'U9ae6458c650504a3e8380a1046e0f', 'lineDisplayName': 'CY', 'messageTime': '2019-10-28T13:13:00.000Z', 'messageContent': "Hello, this is a response from air."}]}]
     '''
-    resPayload = (message == 'r') and invokeAirtable({
+    resPayload = invokeAirtable({
         'eventType': AIR_EVENT_TYPES.REMINDER
     })
 
@@ -83,15 +75,15 @@ def cmd_reminder(message):
 #--Handle FollowEvent (when someone adds this account as friend)
 @line_handler.add(FollowEvent)
 def handle_follow(event):
-    parsedEvent = parseEvent(event)
+    userProfile = line_bot_api.get_profile(event.source.user_id)
 
-    response = 'Hello, ' + parsedEvent['profile'].display_name
+    response = 'Hello, ' + userProfile.display_name
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=response))
 
     invokeAirtable({
         'eventType': AIR_EVENT_TYPES.FOLLOW,
         'lineUserId': event.source.user_id,
-        'lineDisplayName': parsedEvent['profile'].display_name
+        'lineDisplayName': userProfile.display_name
     })
 
 

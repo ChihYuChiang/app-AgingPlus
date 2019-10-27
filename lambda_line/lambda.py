@@ -25,6 +25,7 @@ line_bot_api = LineBotApi(channel_access_token)
 line_handler = WebhookHandler(channel_secret)
 class AIR_EVENT_TYPES():
     FOLLOW = 'follow'
+    REMINDER = 'reminder'
 
 
 def parseEvent(event):
@@ -49,15 +50,28 @@ def lambda_handler(requestEvent, context):
 
     return {'statusCode': 200, 'body': 'OK'}
 
-#Handle MessageEvent and TextMessage type
+
+#--Handle MessageEvent and TextMessage type
+#General response
 @line_handler.add(MessageEvent, TextMessage)
 def handle_message(event):
     parsedEvent = parseEvent(event)
 
+    cmd_reminder(parsedEvent['message'])
+
     response = parsedEvent['message']
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=response))
 
-#Handle FollowEvent (when someone adds this account as friend)
+#'r' -> Reminder of upcoming class
+def cmd_reminder(message):
+    resPayload = (message == 'r') and invokeAirtable({
+        'eventType': AIR_EVENT_TYPES.REMINDER
+    })
+
+    print(resPayload)
+
+
+#--Handle FollowEvent (when someone adds this account as friend)
 @line_handler.add(FollowEvent)
 def handle_follow(event):
     parsedEvent = parseEvent(event)
@@ -73,9 +87,10 @@ def handle_follow(event):
 
 
 def invokeAirtable(payload):
-    response = lambda_client.invoke(
+    res = lambda_client.invoke(
         FunctionName="Airtable",
         InvocationType='RequestResponse',
         Payload=json.dumps(payload)
     )
-    print(response)
+    resPayload = json.loads(res['Payload'].read().decode("utf-8"))
+    return resPayload

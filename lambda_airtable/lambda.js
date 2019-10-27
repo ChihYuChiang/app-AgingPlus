@@ -9,8 +9,13 @@ const AIR_EVENT_TYPES = {
 };
 
 function handlerBuilder(...funcs) {
-  return (event, context) => {
-    for(let func of funcs) { func(event); }
+  return async (event, context) => {
+    //Concurrent fire all handlers
+    let promises = funcs.map((func) => func(event));
+    let results = await Promise.all(promises);
+
+    console.log(results)
+    return results;
   };
 }
 
@@ -44,7 +49,7 @@ async function handle_follow(event) {
   };
 
   await createMember();
-  return { statusCode: 200, body: 'OK' };
+  return { Status: 'handle_follow: OK' };
 };
 
 async function handle_reminder(event) {
@@ -96,10 +101,7 @@ async function handle_reminder(event) {
   };
 
   const targets = await idTargets();
-  console.log(targets)
-  //TODO: invoke LINE lambda here
-
-  return { statusCode: 200, body: 'OK' };
+  return { Status: 'handle_reminder: OK', Payload: targets };
 };
 
 

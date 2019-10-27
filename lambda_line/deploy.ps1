@@ -4,9 +4,9 @@ $path = "C:\Users\chihy\OneDrive\Ongoing - OneDrive\app-AgingPlus\lambda_line\"
 Copy-Item $($path + 'lambda.py') `
 	-Destination $($path + 'build')
 
-Compress-Archive -Path $($path + 'build\*') `
-	-destinationpath $($path + 'Line.zip') `
-	-compressionlevel optimal -Force
+cd "C:\Program Files\7-Zip\"
+.\7z a $($path + 'Line.zip') `
+	$($path + 'build\*')
 
 aws lambda update-function-code `
     --function-name Line `

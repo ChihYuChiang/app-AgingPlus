@@ -1,6 +1,7 @@
 const Airtable = require("airtable");
 const moment = require('moment');
-const { sleepPromise, filterUndefined } = require('./util');
+const { retrieve } = require('./operation.js');
+const { filterUndefined } = require('./util');
 
 const base = new Airtable({ apiKey: process.env.AIRTABLE_APIKEY }).base(process.env.BASE_ID);
 const AIR_EVENT_TYPES = {
@@ -21,7 +22,7 @@ function handlerBuilder(...funcs) {
   };
 }
 
-
+//TODO: generalize create
 async function handle_follow(event) {
   if(event.eventType !== AIR_EVENT_TYPES.FOLLOW) { return }
 
@@ -58,7 +59,8 @@ async function handle_reminder(event) {
   if(event.eventType !== AIR_EVENT_TYPES.REMINDER) { return }
 
   const params = {
-    baseName: 'LINE-MEMBER',
+    base: base,
+    sheet: 'LINE-MEMBER',
     processRecord: (record) => ({
       "id": record.id,
       "lineUserId": record.fields.LineUserId,
@@ -79,44 +81,3 @@ exports.handler = handlerBuilder(
   handle_follow,
   handle_reminder
 );
-
-
-//TODO: move the generalization to operation
-function retrieve(params) {
-  let { baseName, processRecord, filterRecord } = params;
-
-  return new Promise((resolve, reject) => {
-    let table = [];
-    base(baseName)
-      .select({
-        view: "Grid view",
-        cellFormat: "json"
-      })
-      .eachPage(
-        async function page(records, fetchNextPage) {
-          //This function (`page`) will get called for each page of records.
-    
-          records.forEach((record) => {
-            let entry = processRecord(record);
-            table.push(entry);
-          });
-    
-          //To fetch the next page of records, call `fetchNextPage`.
-          //If there are more records, `page` will get called again.
-          //If there are no more records, `done` will get called.
-          await sleepPromise(300);
-          fetchNextPage();
-        },
-        function done(err) {
-          if (err) {
-            console.error(err);
-            reject();
-          }
-          
-          let targetEntries = table.filter(filterRecord);
-          console.log('Retrieved', targetEntries.length, 'records.');
-          resolve(targetEntries);
-        }
-      );
-  });
-};

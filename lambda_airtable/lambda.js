@@ -10,6 +10,7 @@ const AIR_EVENT_TYPES = {
   NEXT_CLASS: 'next_class' //TODO: next class
 };
 
+//TODO: remove the awkward list results
 function handlerBuilder(...funcs) {
   return async (event, context) => {
     //Concurrent fire all handlers
@@ -26,8 +27,7 @@ function handlerBuilder(...funcs) {
 async function handle_follow(event) {
   if(event.eventType !== AIR_EVENT_TYPES.FOLLOW) { return }
 
-  const lineUserId = event.lineUserId;
-  const lineDisplayName = event.lineDisplayName;
+  const { lineUserId, lineDisplayName, lineProfilePic } = event;
 
   const createMember = () => {
     return new Promise((resolve, reject) => {
@@ -35,7 +35,8 @@ async function handle_follow(event) {
         {
           "fields": {
             "LineUserId": lineUserId,
-            "LineDisplayName": lineDisplayName
+            "LineDisplayName": lineDisplayName,
+            "LineProfilePicture": lineProfilePic
           }
         }
       ], (err, records) => {

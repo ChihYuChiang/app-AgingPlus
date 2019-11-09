@@ -1,13 +1,13 @@
 const Airtable = require("airtable");
 const moment = require('moment');
-const { retrieve } = require('./operation.js');
+const { retrieve, create } = require('./operation.js');
 const { filterUndefined } = require('./util');
 
 const base = new Airtable({ apiKey: process.env.AIRTABLE_APIKEY }).base(process.env.BASE_ID);
 const AIR_EVENT_TYPES = {
   FOLLOW: 'follow',
   REMINDER: 'reminder',
-  NEXT_CLASS: 'next_class' //TODO: next class
+  NEXT_CLASS: 'next_class'
 };
 
 //TODO: remove the awkward list results
@@ -23,41 +23,31 @@ function handlerBuilder(...funcs) {
   };
 }
 
-//TODO: generalize create
 async function handle_follow(event) {
-  if(event.eventType !== AIR_EVENT_TYPES.FOLLOW) { return }
+  if(event.eventType !== AIR_EVENT_TYPES.FOLLOW) { return; }
 
   const { lineUserId, lineDisplayName, lineProfilePic } = event;
-
-  const createMember = () => {
-    return new Promise((resolve, reject) => {
-      base('LINE-MEMBER').create([
-        {
-          "fields": {
-            "LineUserId": lineUserId,
-            "LineDisplayName": lineDisplayName,
-            "LineProfilePicture": lineProfilePic
-          }
+  const params = {
+    base: base,
+    sheet: 'LINE-MEMBER',
+    entries: [
+      {
+        "fields": {
+          "LineUserId": lineUserId,
+          "LineDisplayName": lineDisplayName,
+          "LineProfilePicture": lineProfilePic
         }
-      ], (err, records) => {
-        if (err) {
-          console.error(err);
-          reject();
-        }
-        records.forEach((record) => {
-          console.log('Added ' + record.fields.LineDisplayName + ' to Line member record.');
-        });
-        resolve();
-      });
-    });
+      }
+    ]
   };
 
-  await createMember();
+  //TODO: handle reject error
+  await create(params);
   return { Status: 'handle_follow: OK' };
 };
 
 async function handle_reminder(event) {
-  if(event.eventType !== AIR_EVENT_TYPES.REMINDER) { return }
+  if(event.eventType !== AIR_EVENT_TYPES.REMINDER) { return; }
 
   const params = {
     base: base,
@@ -77,8 +67,17 @@ async function handle_reminder(event) {
   return { Status: 'handle_reminder: OK', Data: targets };
 };
 
+async function handle_nextClass(event) {
+  if(event.eventType !== AIR_EVENT_TYPES.NEXT_CLASS) { return; }
+
+  //Use Line ID get aging member id
+
+  //Use aging member id get next class info
+};
+
 
 exports.handler = handlerBuilder(
   handle_follow,
-  handle_reminder
+  handle_reminder,
+  handle_nextClass
 );

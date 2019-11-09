@@ -39,3 +39,29 @@ exports.retrieve = function(params) {
       );
   });
 };
+
+exports.create = function(params) {
+  /*
+  Example `entries` = [{
+    "fields": {
+      "LineUserId": lineUserId,
+      "LineDisplayName": lineDisplayName,
+      "LineProfilePicture": lineProfilePic
+    }
+  }]
+  */
+  let { base, sheet, entries } = params;
+
+  return new Promise((resolve, reject) => {
+    base(sheet).create(entries, (err, records) => {
+      if (err) {
+        console.error(err);
+        reject();
+      }
+      records.forEach((record) => {
+        console.log(`Added ${JSON.stringify(record.fields)} to ${sheet} record.`);
+      });
+      resolve();
+    });
+  });
+};

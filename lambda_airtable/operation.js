@@ -16,7 +16,7 @@ exports.retrieve = function(params) {
           //This function (`page`) will get called for each page of records.
     
           records.forEach((record) => {
-            let entry = processRecord(record);
+            const entry = processRecord(record);
             table.push(entry);
           });
     
@@ -32,12 +32,25 @@ exports.retrieve = function(params) {
             reject();
           }
           
-          let targetEntries = table.filter(filterRecord);
+          const targetEntries = table.filter(filterRecord);
           console.log('Retrieved', targetEntries.length, 'records.');
           resolve(targetEntries);
         }
       );
   });
+};
+
+exports.retrieveReduce = async function(params) {
+  /*
+  Params = { base, sheet, processRecord, filterRecord, reduceRecord, reduceInit }
+  */
+  const { reduceRecord, reduceInit } = params;
+
+  const targetEntries = await exports.retrieve(params);
+
+  const targetEntry = targetEntries.reduce(reduceRecord, reduceInit);
+  console.log('Reduced records.')
+  return targetEntry
 };
 
 exports.create = function(params) {
@@ -65,3 +78,18 @@ exports.create = function(params) {
     });
   });
 };
+
+exports.find = function(params) {
+  let { base, sheet, recordId } = params;
+
+  return new Promise((resolve, reject) => {
+    base(sheet).find(recordId, (err, record) => {
+      if (err) {
+        console.error(err);
+        reject();
+      }
+      console.log(`Found record, ${record.id}.`);
+      resolve(record);
+    });
+  });
+}

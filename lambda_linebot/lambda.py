@@ -52,6 +52,7 @@ def lambda_handler(requestEvent, context):
 @line_handler.add(MessageEvent, TextMessage)
 def handle_message(event):
     if event.message.text == 'r': cmd_reminder(event)
+    if event.message.text == 'n': cmd_nextClass(event)
 
     #Default reply replicates the incoming message
     invokeLambda(LAMBDA.LINE, {
@@ -60,7 +61,8 @@ def handle_message(event):
         'replyMessage': event.message.text
     })
 
-#'r' -> Reminder of upcoming class
+#'r' -> (Admin) Send reminder of upcoming classes
+#TODO: Check the admin identity
 def cmd_reminder(event):
     '''
     Success response = 
@@ -85,6 +87,30 @@ def cmd_reminder(event):
         'lineReplyToken': event.reply_token,
         'replyMessage': reply
     })
+
+#'n' -> (User) Reply next class info
+#TODO: Deal with no next class or no one to send reminder
+def cmd_nextClass(event):
+    #Get next class info and reply to the message
+    resPayload = invokeLambda(LAMBDA.AIRTABLE, {
+        'eventType': AIR_EVENT_TYPES.NEXT_CLASS,
+        'lineUserId': event.source.user_id
+    })
+
+    def genReply(data):
+        if data: #If the res data is not null
+            return 'Your next class is {} at {}. Your trainer is {} 😉.'.format(
+                data['classTime'],
+                data['classLocation'],
+                data['classTrainer']
+            )
+        else: return 'We don\'t have record of your next class 😢.'
+    
+    invokeLambda(LAMBDA.LINE, {
+        'eventType': LINE_EVENT_TYPES.REPLY,
+        'lineReplyToken': event.reply_token,
+        'replyMessage': genReply(resPayload[0]['Data'])
+    })    
 
 
 #--Handle FollowEvent (when someone adds this account as friend)

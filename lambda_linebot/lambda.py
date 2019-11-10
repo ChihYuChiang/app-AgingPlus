@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+from datetime import datetime
 from boto3 import client as boto3_client
 lambda_client = boto3_client('lambda', region_name="us-east-1")
 
@@ -63,6 +64,7 @@ def handle_message(event):
 
 #'r' -> (Admin) Send reminder of upcoming classes
 #TODO: Check the admin identity
+#TODO: Deal with no one to send reminder
 def cmd_reminder(event):
     '''
     Success response = 
@@ -89,9 +91,12 @@ def cmd_reminder(event):
     })
 
 #'n' -> (User) Reply next class info
-#TODO: Deal with no next class or no one to send reminder
 def cmd_nextClass(event):
-    #Get next class info and reply to the message
+    '''
+    Success response = 
+    [{'Status': 'handle_nextClass: OK', 'Data': {'memberId': 'recMgb6f5sfuhVWAs', 'classId': '1900322', 'classTime': '2019-11-14T09:00:00+08:00', 'classLocation': 'home', 'classTrainer': 'CY'}}]
+    '''    
+    #Get next class info
     resPayload = invokeLambda(LAMBDA.AIRTABLE, {
         'eventType': AIR_EVENT_TYPES.NEXT_CLASS,
         'lineUserId': event.source.user_id
@@ -100,12 +105,13 @@ def cmd_nextClass(event):
     def genReply(data):
         if data: #If the res data is not null
             return 'Your next class is {} at {}. Your trainer is {} 😉.'.format(
-                data['classTime'],
+                datetime.fromisoformat(data['classTime']).strftime('%m/%d %H:%M'),
                 data['classLocation'],
                 data['classTrainer']
             )
         else: return 'We don\'t have record of your next class 😢.'
     
+    #Reply to the message
     invokeLambda(LAMBDA.LINE, {
         'eventType': LINE_EVENT_TYPES.REPLY,
         'lineReplyToken': event.reply_token,

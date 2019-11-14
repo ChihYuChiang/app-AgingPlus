@@ -2,8 +2,8 @@
 
 . './shared.ps1'
 
-$richmenuList = Invoke-RestMethod -Uri $($lineUri + 'list') -Method Get -Headers $headers
+$richmenuList = Invoke-RestMethod -Uri $($lineUri + 'richmenu/list') -Method Get -Headers $headers
 foreach ($richmenu in $richmenuList.richmenus) {
-    Invoke-RestMethod -Uri $($lineUri + $richmenu.richMenuId) -Method Delete -Headers $headers
+    Invoke-RestMethod -Uri $($lineUri + 'richmenu/' + $richmenu.richMenuId) -Method Delete -Headers $headers
     Write-Host "Delete $($richmenu.richMenuId)"
 }

@@ -1,5 +1,5 @@
 $path = 'C:\Users\chihy\OneDrive\Ongoing - OneDrive\app-AgingPlus\'
-$lineUri = 'https://api.line.me/v2/bot/richmenu/'
+$lineUri = 'https://api.line.me/v2/bot/'
 Write-Host 'Import $path and $lineUri'
 
 Import-Module powershell-yaml

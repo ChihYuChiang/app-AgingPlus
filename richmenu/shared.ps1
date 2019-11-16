@@ -7,10 +7,14 @@ Import-Module powershell-yaml
 $content = ''
 foreach ($line in $fileContent) { $content = $content + "`n" + $line }
 $cred = ConvertFrom-YAML $content
-Write-Host 'Import $cred'
+[string[]]$fileContent = Get-Content $($path + 'ref\config.yml')
+$content = ''
+foreach ($line in $fileContent) { $content = $content + "`n" + $line }
+$config = ConvertFrom-YAML $content
+Write-Host 'Import $cred and $config'
 
 $headers = @{
     'Authorization' = $('Bearer ' + $cred.LINE.channelAccessToken)
-    'Content-Type' = 'application/json'
+    'Content-Type' = 'application/json; charset=utf-8'
 }
 Write-Host 'Import $headers'

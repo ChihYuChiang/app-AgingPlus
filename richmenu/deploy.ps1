@@ -11,7 +11,7 @@ $body = @"
 	},
 	"selected": true,
 	"name": "richmenu 1",
-	"chatBarText": "Tap here",
+	"chatBarText": "樂齡運動小幫手",
 	"areas": [{
 		"bounds": {
 			"x": 0,
@@ -22,7 +22,7 @@ $body = @"
 		"action": {
 			"type": "message",
 			"label": "1",
-			"text": "1"
+			"text": "運動週報 施工中"
 		}
 	}, {
 		"bounds": {
@@ -34,7 +34,7 @@ $body = @"
 		"action": {
 			"type": "message",
 			"label": "2",
-			"text": "2"
+			"text": "課後練習 施工中"
 		}
 	}, {
 		"bounds": {
@@ -44,9 +44,10 @@ $body = @"
 			"height": 270
 		},
 		"action": {
-			"type": "message",
+			"type": "postback",
 			"label": "3",
-			"text": "n"
+			"data": "action=next_class",
+			"displayText": "下次上課資訊"
 		}
 	}, {
 		"bounds": {
@@ -58,7 +59,7 @@ $body = @"
 		"action": {
 			"type": "message",
 			"label": "4",
-			"text": "4"
+			"text": "運動小學堂 施工中"
 		}
 	}, {
 		"bounds": {
@@ -83,14 +84,16 @@ $body = @"
 			"height": 270
 		},
 		"action": {
-			"type": "message",
+			"type": "datetimepicker",
 			"label": "6",
-			"text": "6"
+			"mode": "datetime",
+			"data": "action=reschedule_class"
 		}
 	}]
 }
 "@
-$richmenu = Invoke-RestMethod -Uri $($lineUri + 'richmenu/') -Method Post -Headers $headers -Body $body
+
+$richmenu = Invoke-RestMethod -Uri $($lineUri + 'richmenu/') -Method Post -Headers $headers -Body ([System.Text.Encoding]::UTF8.GetBytes($body)) #Use PS 6 + Transform to byte code to avoid Chinese encoding issue
 Write-Host "Created $($richmenu.richMenuId)"
 
 #Upload image

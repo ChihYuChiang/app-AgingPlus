@@ -1,13 +1,14 @@
 import os
 import sys
 import json
+import re
 from datetime import datetime
 from boto3 import client as boto3_client
 lambda_client = boto3_client('lambda', region_name="us-east-1")
 
 from linebot import WebhookHandler
 from linebot.exceptions import InvalidSignatureError
-from linebot.models import FollowEvent, MessageEvent, TextMessage
+from linebot.models import FollowEvent, MessageEvent, TextMessage, PostbackEvent
 #https://github.com/line/line-bot-sdk-python
 #https://developers.line.biz/en/reference/messaging-api/
 #TODO: encrypt keys on AWS
@@ -49,11 +50,45 @@ def lambda_handler(requestEvent, context):
     return {'statusCode': 200, 'body': 'OK'}
 
 
+#--Handle PostbackEvent type
+@line_handler.add(PostbackEvent)
+def handle_postback(event):
+    eventAction = re.search('action=(.+);?', event.postback.data)[1]
+    if eventAction == AIR_EVENT_TYPES.NEXT_CLASS: cmd_nextClass(event)
+
+#(User) Reply next class info
+def cmd_nextClass(event):
+    '''
+    Success response = 
+    [{'Status': 'handle_nextClass: OK', 'Data': {'memberId': 'recMgb6f5sfuhVWAs', 'classId': '1900322', 'classTime': '2019-11-14T09:00:00+08:00', 'classLocation': 'home', 'classTrainer': 'CY'}}]
+    '''    
+    #Get next class info
+    resPayload = invokeLambda(LAMBDA.AIRTABLE, {
+        'eventType': AIR_EVENT_TYPES.NEXT_CLASS,
+        'lineUserId': event.source.user_id
+    })
+
+    def genReply(data):
+        if data: #If the res data is not null
+            return 'Your next class is {} at {}. Your trainer is {} 😉.'.format(
+                datetime.fromisoformat(data['classTime']).strftime('%m/%d %H:%M'),
+                data['classLocation'],
+                data['classTrainer']
+            )
+        else: return 'We don\'t have record of your next class 😢.'
+    
+    #Reply to the message
+    invokeLambda(LAMBDA.LINE, {
+        'eventType': LINE_EVENT_TYPES.REPLY,
+        'lineReplyToken': event.reply_token,
+        'replyMessage': genReply(resPayload[0]['Data'])
+    })
+
+
 #--Handle MessageEvent and TextMessage type
 @line_handler.add(MessageEvent, TextMessage)
 def handle_message(event):
     if event.message.text == 'r': cmd_reminder(event)
-    if event.message.text == 'n': cmd_nextClass(event)
 
     #Default reply replicates the incoming message
     invokeLambda(LAMBDA.LINE, {
@@ -89,34 +124,6 @@ def cmd_reminder(event):
         'lineReplyToken': event.reply_token,
         'replyMessage': reply
     })
-
-#'n' -> (User) Reply next class info
-def cmd_nextClass(event):
-    '''
-    Success response = 
-    [{'Status': 'handle_nextClass: OK', 'Data': {'memberId': 'recMgb6f5sfuhVWAs', 'classId': '1900322', 'classTime': '2019-11-14T09:00:00+08:00', 'classLocation': 'home', 'classTrainer': 'CY'}}]
-    '''    
-    #Get next class info
-    resPayload = invokeLambda(LAMBDA.AIRTABLE, {
-        'eventType': AIR_EVENT_TYPES.NEXT_CLASS,
-        'lineUserId': event.source.user_id
-    })
-
-    def genReply(data):
-        if data: #If the res data is not null
-            return 'Your next class is {} at {}. Your trainer is {} 😉.'.format(
-                datetime.fromisoformat(data['classTime']).strftime('%m/%d %H:%M'),
-                data['classLocation'],
-                data['classTrainer']
-            )
-        else: return 'We don\'t have record of your next class 😢.'
-    
-    #Reply to the message
-    invokeLambda(LAMBDA.LINE, {
-        'eventType': LINE_EVENT_TYPES.REPLY,
-        'lineReplyToken': event.reply_token,
-        'replyMessage': genReply(resPayload[0]['Data'])
-    })    
 
 
 #--Handle FollowEvent (when someone adds this account as friend)

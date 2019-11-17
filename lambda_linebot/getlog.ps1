@@ -14,6 +14,13 @@ $logStreamName = $describeLogStreams.logStreams[0].logStreamName
 
 #Get log of the specified date
 $logEvents = aws logs get-log-events --log-group-name $logGroupName --log-stream-name $logStreamName --start-time $startTime --end-time $endTime | ConvertFrom-Json
-$logEvents.events
+
+#Save log json to a tmp file
+$TempFile = New-TemporaryFile
+ConvertTo-Json $logEvents.events > $TempFile
 
 #TODO: Pass the log events to the python parser
+python parselog.py $TempFile
+
+#Clean up the tmp file
+Remove-Item -Path $TempFile

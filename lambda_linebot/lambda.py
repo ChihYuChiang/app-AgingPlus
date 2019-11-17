@@ -100,6 +100,9 @@ def handle_message(event):
 #'r' -> (Admin) Send reminder of upcoming classes
 #TODO: Check the admin identity
 #TODO: Deal with no one to send reminder
+#TODO: Admin group message and test
+#TODO: Admin group message by group and indi message
+#TODO: Get everyday log of all message sent to the bot: AWS CLI into csv, time, identity, message
 def cmd_reminder(event):
     '''
     Success response = 

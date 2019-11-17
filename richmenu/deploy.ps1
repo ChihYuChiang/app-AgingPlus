@@ -2,6 +2,7 @@
 
 . './shared.ps1'
 
+#TODO: Dif rich menu for member and non-member
 #Create object
 $body = @"
 {

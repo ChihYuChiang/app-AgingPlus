@@ -66,6 +66,7 @@ async function handle_reminder(event) {
   return { Status: 'handle_reminder: OK', Data: targets };
 };
 
+//TODO: Deal with no class found
 async function handle_nextClass(event) {
   if(event.eventType !== AIR_EVENT_TYPES.NEXT_CLASS) { return; }
 

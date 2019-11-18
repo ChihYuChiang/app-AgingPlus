@@ -90,6 +90,13 @@ def cmd_nextClass(event):
 def handle_message(event):
     if event.message.text == 'r': cmd_reminder(event)
 
+    #TODO: Switch to log module
+    print(json.dumps({
+        'logType': 'MessageEvent',
+        'lineUserId': event.source.user_id,
+        'msgContent': event.message.text
+    }))
+
     #Default reply replicates the incoming message
     invokeLambda(LAMBDA.LINE, {
         'eventType': LINE_EVENT_TYPES.REPLY,

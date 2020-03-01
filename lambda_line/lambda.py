@@ -24,7 +24,7 @@ class LINE_EVENT_TYPES():
     GET_PROFILE = 'get_profile'
 
 
-//TODO: make it middleware form
+# TODO: make it middleware form
 def lambda_handler(requestEvent, context):
     res = ''
     eventType = requestEvent['eventType']
@@ -81,40 +81,39 @@ def replyMessage_carousel(event):
         carouselContent = CarouselTemplate(
             columns=[
                 CarouselColumn(
-                    thumbnail_image_url='https://via.placeholder.com/150',
-                    imageBackgroundColor="#FFFFFF",
-                    title='this is menu1',
-                    text='description1',
-                    defaultAction=URIAction(
+                    thumbnail_image_url='https://dl.airtable.com/.attachmentThumbnails/5ea2b91702fe89e0eeda03bad475f98b/83e77c45',
+                    image_background_color="#FFFFFF",
+                    title='回家作業 1：抱狐狸',
+                    text='未完成',
+                    default_action=URIAction(
                         label='uri1',
-                        uri='http://youtube.com'
+                        uri='https://www.youtube.com/watch?v=Y-JQ-RCyPpQ'
                     ),                        
                     actions=[
                         MessageAction(
                             label='完成',
-                            text='我完成了項目1'
+                            text='我完成了 抱狐狸'
                         )
                     ]
                 ),
                 CarouselColumn(
-                    thumbnail_image_url='https://example.com/item2.jpg',
-                    imageBackgroundColor="#000000",
-                    title='this is menu2',
-                    text='description2',
-                    defaultAction=URIAction(
+                    thumbnail_image_url='https://dl.airtable.com/.attachmentThumbnails/41f6cfcd1e50175a83240f73338f3f2b/67df816e',
+                    image_background_color="#000000",
+                    title='回家作業 2: 狐狸家族',
+                    text='已完成',
+                    default_action=URIAction(
                         label='uri2',
-                        uri='http://youtube.com'
+                        uri='https://www.youtube.com/watch?v=Y-JQ-RCyPpQ'
                     ),
                     actions=[
                         MessageAction(
-                            label='message2',
-                            text='我完成了項目2'
+                            label='完成',
+                            text='我完成了 狐狸家族'
                         )
                     ]
                 )
             ]
         )
-    
         line_bot_api.reply_message(
             event['lineReplyToken'],
             TemplateSendMessage(
@@ -123,7 +122,8 @@ def replyMessage_carousel(event):
             )
         )
 
-    except LineBotApiError as err: pass
+    # except LineBotApiError as err: pass
+    except LineBotApiError as err: raise
 
 def getProfile(event):
     '''

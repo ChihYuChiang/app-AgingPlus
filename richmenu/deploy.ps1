@@ -33,9 +33,10 @@ $body = @"
 			"height": 270
 		},
 		"action": {
-			"type": "message",
+			"type": "postback",
 			"label": "2",
-			"text": "課後練習 施工中"
+			"data": "action=homework",
+			"displayText": "課後練習"
 		}
 	}, {
 		"bounds": {

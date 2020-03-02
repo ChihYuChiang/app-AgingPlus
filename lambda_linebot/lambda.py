@@ -30,6 +30,10 @@ class LINE_EVENT_TYPES():
     REPLY = 'reply'
     REPLY_CAROUSEL = 'reply_carousel'
     GET_PROFILE = 'get_profile'
+class LINE_USERACTION_TYPES():
+    POSTBACK = 'post_back'
+    MESSAGE = 'message'
+    URI = 'uri'
 class LAMBDA():
     AIRTABLE = 'Airtable'
     LINE = 'Line'
@@ -74,7 +78,7 @@ def cmd_nextClass(event):
     })
 
     def genReply(data):
-        if data: # If the res data is not null
+        if data:  # If the res data is not null
             return 'Your next class is {} at {}. Your trainer is {} 😉.'.format(
                 datetime.fromisoformat(data['classTime']).strftime('%m/%d %H:%M'),
                 data['classLocation'],
@@ -93,29 +97,52 @@ def cmd_nextClass(event):
 def cmd_homework(event):
     '''
     Success response = 
-    [{'Status': 'handle_nextClass: OK', 'Data': {'memberId': 'recMgb6f5sfuhVWAs', 'classId': '1900322', 'classTime': '2019-11-14T09:00:00+08:00', 'classLocation': 'home', 'classTrainer': 'CY'}}]
-    '''    
-    # Get next class info
-    # resPayload = invokeLambda(LAMBDA.AIRTABLE, {
-    #     'eventType': AIR_EVENT_TYPES.NEXT_CLASS,
-    #     'lineUserId': event.source.user_id
-    # })
 
-    # def genReply(data):
-    #     if data: #If the res data is not null
-    #         return 'Your next class is {} at {}. Your trainer is {} 😉.'.format(
-    #             datetime.fromisoformat(data['classTime']).strftime('%m/%d %H:%M'),
-    #             data['classLocation'],
-    #             data['classTrainer']
-    #         )
-    #     else: return 'We don\'t have record of your next class 😢.'
-    
-    # Reply to the message
-    invokeLambda(LAMBDA.LINE, {
-        'eventType': LINE_EVENT_TYPES.REPLY_CAROUSEL,
-        'lineReplyToken': event.reply_token,
-        'replyMessage': {}
+    '''    
+    # Get homework info
+    resPayload = invokeLambda(LAMBDA.AIRTABLE, {
+        'eventType': AIR_EVENT_TYPES.HOMEWORK,
+        'lineUserId': event.source.user_id
     })
+
+    data = resPayload[0]['Data']
+    print(data)
+    def genReply(data):
+        if data:  # If the res data is not null
+            # make dict into string
+            str(data)
+        else: return 'We don\'t have record of your homework 😢.'
+    
+    data_hc = [{
+        'main': {
+            'thumbnail_image_url': 'https://dl.airtable.com/.attachmentThumbnails/5ea2b91702fe89e0eeda03bad475f98b/83e77c45',
+            'title': '回家作業 1：抱狐狸',
+            'text': '未完成'
+        },
+        'defaultAction': {
+            'type': LINE_USERACTION_TYPES.URI,
+            'content': {
+                'label': '影片',
+                'uri': 'https://www.youtube.com/watch?v=t_qk5ZhRHIs'
+            }
+        },
+        'actions': [{
+            'type': LINE_USERACTION_TYPES.MESSAGE,
+            'content': {
+                'label': '完成',
+                'text': '我完成了 抱狐狸'
+            }
+        }]
+    }]
+    print(data_hc)
+
+    # Reply to the message
+    # invokeLambda(LAMBDA.LINE, {
+    #     'eventType': LINE_EVENT_TYPES.REPLY_CAROUSEL,
+    #     'lineReplyToken': event.reply_token,
+    #     # 'replyMessage': genReply(resPayload[0]['Data'])
+    #     'replyMessage': json.dumps(data)
+    # })
 
 
 #-- Handle MessageEvent and TextMessage type

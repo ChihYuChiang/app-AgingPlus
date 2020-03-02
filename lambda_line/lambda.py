@@ -23,7 +23,19 @@ class LINE_EVENT_TYPES():
     REPLY_CAROUSEL = 'reply_carousel'
     GET_PROFILE = 'get_profile'
 
+class LINE_USERACTION_TYPES():
+    POSTBACK = 'post_back'
+    MESSAGE = 'message'
+    URI = 'uri'
+def userAction(userActionType):
+    return {
+        LINE_USERACTION_TYPES.POSTBACK: PostbackAction,
+        LINE_USERACTION_TYPES.MESSAGE: MessageAction,
+        LINE_USERACTION_TYPES.URI: URIAction
+    }[userActionType]
 
+
+#-- Main handler
 # TODO: make it middleware form
 def lambda_handler(requestEvent, context):
     res = ''
@@ -40,6 +52,7 @@ def lambda_handler(requestEvent, context):
     return res
 
 
+#-- Operations
 def pushMessage(event):
     '''
     event {
@@ -58,7 +71,7 @@ def replyMessage(event):
     event {
         'eventType': LINE_EVENT_TYPES.REPLY,
         'lineReplyToken': event.reply_token,
-        'replyMessage': replyMessage
+        'replyMessage': str
     }
     '''
     # Reply token can be used only once -> The default reply will not take place (and a LineBotApiError will be raised) if the reply has been made in cmd process
@@ -74,46 +87,42 @@ def replyMessage_carousel(event):
     event {
         'eventType': LINE_EVENT_TYPES.REPLY_CAROUSEL,
         'lineReplyToken': event.reply_token,
-        'replyMessage': https://developers.line.biz/en/reference/messaging-api/#carousel
+        'replyMessage': [{
+            'main': {
+                'thumbnail_image_url': 'https://dl.airtable.com/.attachmentThumbnails/',
+                'title': '回家作業 1：抱狐狸',
+                'text': '未完成'
+            },
+            'defaultAction': {
+                'type': LINE_USERACTION_TYPES,
+                'content': {
+                    'label': '完成',
+                    'uri'/'text'/'display_text': '我完成了 抱狐狸',
+                    ('data': {}) -- Needed when postback
+                }
+            },
+            'actions': [{
+                'type': LINE_USERACTION_TYPES,
+                'content': {}
+            }, {...}]
+        }, {...}]
     }
     '''
-    try:
-        carouselContent = CarouselTemplate(
-            columns=[
-                CarouselColumn(
-                    thumbnail_image_url='https://dl.airtable.com/.attachmentThumbnails/5ea2b91702fe89e0eeda03bad475f98b/83e77c45',
-                    image_background_color="#FFFFFF",
-                    title='回家作業 1：抱狐狸',
-                    text='未完成',
-                    default_action=URIAction(
-                        label='uri1',
-                        uri='https://www.youtube.com/watch?v=Y-JQ-RCyPpQ'
-                    ),                        
-                    actions=[
-                        MessageAction(
-                            label='完成',
-                            text='我完成了 抱狐狸'
-                        )
-                    ]
-                ),
-                CarouselColumn(
-                    thumbnail_image_url='https://dl.airtable.com/.attachmentThumbnails/41f6cfcd1e50175a83240f73338f3f2b/67df816e',
-                    image_background_color="#000000",
-                    title='回家作業 2: 狐狸家族',
-                    text='已完成',
-                    default_action=URIAction(
-                        label='uri2',
-                        uri='https://www.youtube.com/watch?v=Y-JQ-RCyPpQ'
-                    ),
-                    actions=[
-                        MessageAction(
-                            label='完成',
-                            text='我完成了 狐狸家族'
-                        )
-                    ]
-                )
-            ]
+    # Parse string into dict
+    replyMessage = json.loads(event['replyMessage'])
+
+    # Construct columns
+    def makeColumn(colContent):
+        return CarouselColumn(
+            **colContent['main'],
+            default_action=userAction(colContent['defaultAction']['type'])(**colContent['defaultAction']['content']),
+            actions=[userAction(action['type'])(**action['content']) for action in colContent['actions']]
         )
+    carouselContent = CarouselTemplate(
+        columns=[makeColumn(colContent) for colContent in replyMessage]
+    )
+        
+    try:
         line_bot_api.reply_message(
             event['lineReplyToken'],
             TemplateSendMessage(
@@ -121,9 +130,7 @@ def replyMessage_carousel(event):
                 template=carouselContent
             )
         )
-
-    # except LineBotApiError as err: pass
-    except LineBotApiError as err: raise
+    except LineBotApiError as err: pass
 
 def getProfile(event):
     '''

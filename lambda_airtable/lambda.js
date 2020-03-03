@@ -2,6 +2,7 @@ const Airtable = require("airtable");
 const moment = require('moment-timezone');
 const has = require('lodash/has');
 const { retrieve, retrieveReduce, create, find } = require('./operation.js');
+const { retrieveMemberIdByLineId } = require('./operation-sp.js');
 const { filterUndefined } = require('./util');
 
 const base = new Airtable({ apiKey: process.env.AIRTABLE_APIKEY }).base(process.env.BASE_ID);
@@ -12,19 +13,8 @@ const AIR_EVENT_TYPES = {
   HOMEWORK: 'homework'
 };
 
-// TODO: remove the awkward list results
-function handlerBuilder(...funcs) {
-  return async (event, context) => {
-    // Concurrent fire all handlers
-    let promises = funcs.map((func) => func(event));
-    let results = filterUndefined(await Promise.all(promises));
 
-    // Res with an array with all activated handlers
-    console.log(results)
-    return results;
-  };
-}
-
+//-- Handler middlewares
 async function handle_follow(event) {
   if(event.eventType !== AIR_EVENT_TYPES.FOLLOW) { return; }
 
@@ -99,9 +89,9 @@ async function handle_nextClass(event) {
     reduceRecord: (acc, record) => 
       record.classTime.isAfter(moment().subtract(0.5, 'hours')) && record.classTime.isBefore(acc.classTime) ?
       record : acc,
-    reduceInit: { "classTime": moment().add(100, 'years') }
+    reduceDefault: { "classTime": moment().add(100, 'years') }
   };
-  // When no entry matches, retrieveReduce returned `reduceInit`
+  // When no entry matches, retrieveReduce returned `reduceDefault`
   let nextClass = await retrieveReduce(params_2);
 
   // Post processing
@@ -117,21 +107,79 @@ async function handle_nextClass(event) {
     };
     nextClass.classTrainer = (await find(params_3)).fields.稱呼;
   } else {
-    //Replace `nextClass` with null when no match
+    // Replace `nextClass` with null when no match
     nextClass = null;
   }
 
-  console.log(nextClass)
+  console.log(nextClass);
   return { Status: 'handle_nextClass: OK', Data: nextClass };
 };
 
 async function handle_homework(event) {
   if(event.eventType !== AIR_EVENT_TYPES.HOMEWORK) { return; }
+  const memberId = await retrieveMemberIdByLineId(base, event.lineUserId);
+  
+  // TODO: Get only today's record
+  const params_1 = {
+    base: base,
+    sheet: '回家作業',
+    processRecord: (record) => ({
+      "hwId": record.fields.編號,
+      "memberId": record.fields.學員[0],
+      "hwDate": record.fields.日期,
+      "baseMoveId": record.fields.課程記錄_基本菜單[0],
+      "noOfSet": record.fields.幾組,
+      "personalTip": record.fields.課程記錄_個人化提醒 && record.fields.課程記錄_個人化提醒[0],
+      "image": record.fields.課程記錄_圖片 && record.fields.課程記錄_圖片[0].thumbnails.large.url,
+      "video": record.fields.課程記錄_影片 && record.fields.課程記錄_影片[0],
+      "isFinished": record.fields.完成 ? true : false
+    }),
+    filterRecord: (record) => record.memberId === memberId
+  };
+  let homeworks = await retrieve(params_1);
 
-  let homework = ''
-  return { Status: 'handle_homework: OK', Data: homework };
+  // Replace memberId and baseMoveId by member and baseMove names
+  let promises = homeworks.map(async (homework) => {
+    const params_2 = {
+      base: base,
+      sheet: '學員',
+      recordId: homework.memberId
+    };
+    homework.member = (await find(params_2)).fields.稱呼;
+
+    const params_3 = {
+      base: base,
+      sheet: '基本菜單',
+      recordId: homework.baseMoveId
+    };
+    homework.baseMove = (await find(params_3)).fields.名稱;
+
+    // Removing ids for saving bandwidth
+    delete homework.memberId;
+    delete homework.baseMoveId;
+
+    return homework;
+  });
+  homeworks = await Promise.all(promises);
+
+  console.log(homeworks);
+  return { Status: 'handle_homework: OK', Data: homeworks };
 }
 
+
+//-- Main handler
+// TODO: remove the awkward list results
+function handlerBuilder(...funcs) {
+  return async (event, context) => {
+    // Concurrent fire all handlers
+    let promises = funcs.map((func) => func(event));
+    let results = filterUndefined(await Promise.all(promises));
+
+    // Res with an array with all activated handlers
+    console.log(results)
+    return results;
+  };
+}
 
 exports.handler = handlerBuilder(
   handle_follow,

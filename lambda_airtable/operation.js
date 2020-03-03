@@ -42,13 +42,13 @@ exports.retrieve = function(params) {
 
 exports.retrieveReduce = async function(params) {
   /*
-  Params = { base, sheet, processRecord, filterRecord, reduceRecord, reduceInit }
+  Params = { base, sheet, processRecord, filterRecord, reduceRecord, reduceDefault }
   */
-  const { reduceRecord, reduceInit } = params;
+  const { reduceRecord, reduceDefault } = params;
 
   const targetEntries = await exports.retrieve(params);
 
-  const targetEntry = targetEntries.reduce(reduceRecord, reduceInit);
+  const targetEntry = targetEntries.reduce(reduceRecord, reduceDefault);
   console.log('Reduced records.')
   return targetEntry
 };
@@ -80,6 +80,9 @@ exports.create = function(params) {
 };
 
 exports.find = function(params) {
+  /*
+  Find by record ID, which is the internal record ID and is hidden from the Airtable frontend.
+  */
   let { base, sheet, recordId } = params;
 
   return new Promise((resolve, reject) => {
@@ -92,4 +95,4 @@ exports.find = function(params) {
       resolve(record);
     });
   });
-}
+};

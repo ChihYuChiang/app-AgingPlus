@@ -97,7 +97,7 @@ def cmd_nextClass(event):
 def cmd_homework(event):
     '''
     Success response = 
-
+    [{'Status': 'handle_homework: OK', 'Data': [{'hwId': 'bingo-a0f-HW200301-1', 'memberId': 'reccxx4HsZpu9XaMd', 'hwDate': '2020-03-01', 'baseMoveId': 'rec9nayImBuqkbGW1', 'noOfSet': 3, 'personalTip': '越像蟲越好', 'image': 'https://dl.airtable.com/.attachmentThumbnails/2e4132d7206ae8edddc79c6fd9525e78/62d6d3c6', 'video': 'https://www.youtube.com/watch?v=t_qk5ZhRHIs', 'isFinished': False}]}]
     '''    
     # Get homework info
     resPayload = invokeLambda(LAMBDA.AIRTABLE, {
@@ -105,12 +105,37 @@ def cmd_homework(event):
         'lineUserId': event.source.user_id
     })
 
-    data = resPayload[0]['Data']
-    print(data)
+    print(resPayload)
+    def genReplyItem(dataItem):
+        return {
+            'main': {
+                'thumbnail_image_url': dataItem['image'],
+                'title': '回家作業 {}：{}'.format(),
+                'text': '未完成'
+            },
+            'defaultAction': {
+                'type': LINE_USERACTION_TYPES.URI,
+                'content': {
+                    'label': '影片',
+                    'uri': 'https://www.youtube.com/watch?v=t_qk5ZhRHIs'
+                }
+            },
+            'actions': [{
+                'type': LINE_USERACTION_TYPES.MESSAGE,
+                'content': {
+                    'label': '完成',
+                    'text': '我完成了 抱狐狸'
+                }
+            }]
+        }
+
     def genReply(data):
         if data:  # If the res data is not null
-            # make dict into string
-            str(data)
+            reply = [genReplyItem(dataItem) for dataItem in data]
+
+            # Make dict into json string
+            json.dumps(reply)
+            return reply
         else: return 'We don\'t have record of your homework 😢.'
     
     data_hc = [{
@@ -134,15 +159,13 @@ def cmd_homework(event):
             }
         }]
     }]
-    print(data_hc)
 
     # Reply to the message
-    # invokeLambda(LAMBDA.LINE, {
-    #     'eventType': LINE_EVENT_TYPES.REPLY_CAROUSEL,
-    #     'lineReplyToken': event.reply_token,
-    #     # 'replyMessage': genReply(resPayload[0]['Data'])
-    #     'replyMessage': json.dumps(data)
-    # })
+    invokeLambda(LAMBDA.LINE, {
+        'eventType': LINE_EVENT_TYPES.REPLY_CAROUSEL,
+        'lineReplyToken': event.reply_token,
+        'replyMessage': genReply(resPayload[0]['Data'])
+    })
 
 
 #-- Handle MessageEvent and TextMessage type

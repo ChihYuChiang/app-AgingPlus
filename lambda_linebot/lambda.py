@@ -143,36 +143,20 @@ def cmd_homework(event):
             reply = [genReplyItem(i, dataItem) for i, dataItem in enumerate(data, 1)]
 
             # Make dict into json string
-            return json.dumps(reply)
-        else: return 'We don\'t have record of your homework 😢.'
-    
-    data_hc = [{
-        'main': {
-            'thumbnail_image_url': 'https://dl.airtable.com/.attachmentThumbnails/5ea2b91702fe89e0eeda03bad475f98b/83e77c45',
-            'title': '回家作業 1：抱狐狸',
-            'text': '未完成'
-        },
-        'defaultAction': {
-            'type': LINE_USERACTION_TYPES.URI,
-            'content': {
-                'label': '影片',
-                'uri': 'https://www.youtube.com/watch?v=t_qk5ZhRHIs'
+            return {
+                'eventType': LINE_EVENT_TYPES.REPLY_CAROUSEL,
+                'replyMessage': json.dumps(reply)
             }
-        },
-        'actions': [{
-            'type': LINE_USERACTION_TYPES.MESSAGE,
-            'content': {
-                'label': '完成',
-                'text': '我完成了 抱狐狸'
+        else:
+            return {
+                'eventType': LINE_EVENT_TYPES.REPLY,
+                'replyMessage': 'We don\'t have record of your homework 😢.'
             }
-        }]
-    }]
 
-    # Reply to the message
+    # Reply to the request
     invokeLambda(LAMBDA.LINE, {
-        'eventType': LINE_EVENT_TYPES.REPLY_CAROUSEL,
         'lineReplyToken': event.reply_token,
-        'replyMessage': genReply(resPayload[0]['Data'])
+        **genReply(resPayload[0]['Data'])
     })
 
 

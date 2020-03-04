@@ -57,7 +57,6 @@ async function handle_reminder(event) {
   return { Status: 'handle_reminder: OK', Data: targets };
 };
 
-// TODO: Deal with no class found
 async function handle_nextClass(event) {
   if(event.eventType !== AIR_EVENT_TYPES.NEXT_CLASS) { return; }
 
@@ -83,7 +82,7 @@ async function handle_nextClass(event) {
       "classId": record.fields.編號,
       "classTime": moment(record.fields.日期時間),
       "classLocation": record.fields.地點,
-      "classTrainer": record.fields.教練1[0] //TODO: deal with no content yet
+      "classTrainer": record.fields.教練1 && record.fields.教練1[0]
     }),
     filterRecord: (record) => record.memberId === target.memberId,
     reduceRecord: (acc, record) => 
@@ -119,14 +118,13 @@ async function handle_homework(event) {
   if(event.eventType !== AIR_EVENT_TYPES.HOMEWORK) { return; }
   const memberId = await retrieveMemberIdByLineId(base, event.lineUserId);
   
-  // TODO: Get only today's record
   const params_1 = {
     base: base,
     sheet: '回家作業',
     processRecord: (record) => ({
       "hwId": record.fields.編號,
       "memberId": record.fields.學員[0],
-      "hwDate": record.fields.日期,
+      "hwDate": moment(record.fields.日期),
       "baseMoveId": record.fields.課程記錄_基本菜單[0],
       "noOfSet": record.fields.幾組,
       "personalTip": record.fields.課程記錄_個人化提醒 && record.fields.課程記錄_個人化提醒[0],
@@ -134,7 +132,10 @@ async function handle_homework(event) {
       "video": record.fields.課程記錄_影片 && record.fields.課程記錄_影片[0],
       "isFinished": record.fields.完成 ? true : false
     }),
-    filterRecord: (record) => record.memberId === memberId
+    filterRecord: (record) => (
+      record.memberId === memberId &&
+      record.hwDate.isSame(moment(), 'day')  // Is today's hw
+    )
   };
   let homeworks = await retrieve(params_1);
 

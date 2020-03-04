@@ -26,6 +26,7 @@ class AIR_EVENT_TYPES():
     NEXT_CLASS = 'next_class'
     HOMEWORK = 'homework'
     FINISH_HOMEWORK = 'finish_homework'
+    EMPTY = 'empty'
 class LINE_EVENT_TYPES():
     PUSH = 'push'
     REPLY = 'reply'
@@ -61,7 +62,8 @@ def lambda_handler(requestEvent, context):
 @line_handler.add(PostbackEvent)
 def handle_postback(event):
     eventAction = re.search('action=(.+?)(;|$)', event.postback.data)[1]
-    if eventAction == AIR_EVENT_TYPES.NEXT_CLASS:
+    if eventAction == AIR_EVENT_TYPES.EMPTY: pass
+    elif eventAction == AIR_EVENT_TYPES.NEXT_CLASS:
         cmd_nextClass(event)
     elif eventAction == AIR_EVENT_TYPES.HOMEWORK:
         cmd_homework(event)
@@ -72,7 +74,7 @@ def handle_postback(event):
 def cmd_nextClass(event):
     '''
     Success response = 
-    [{'Status': 'handle_nextClass: OK', 'Data': {'memberId': 'recMgb6f5sfuhVWAs', 'classId': '1900322', 'classTime': '2019-11-14T09:00:00+08:00', 'classLocation': 'home', 'classTrainer': 'CY'}}]
+    [{'Status': 'handle_nextClass: OK', 'Data': {'memberIid': 'recMgb6f5sfuhVWAs', 'classId': '1900322', 'classTime': '2019-11-14T09:00:00+08:00', 'classLocation': 'home', 'classTrainer': 'CY'}}]
     '''    
     # Get next class info
     resPayload = invokeLambda(LAMBDA.AIRTABLE, {
@@ -101,7 +103,7 @@ def cmd_homework(event):
     '''
     Success response = 
     [{'Status': 'handle_homework: OK', 'Data': [{
-        hwId: 'bingo-a0f-HW200301-1',
+        hwIid: 'rec123456',
         hwDate: '2020-03-01',
         noOfSet: 3,
         personalTip: '越像蟲越好',
@@ -123,7 +125,7 @@ def cmd_homework(event):
             'main': {
                 'thumbnail_image_url': dataItem['image'],
                 'title': '回家作業 {}：{}'.format(i, dataItem['baseMove']),
-                'text': '完成❤️' if dataItem['isFinished'] else '{} 組'.format(dataItem['noOfSet'])
+                'text': '{} 組'.format(dataItem['noOfSet'])
             },
             'defaultAction': {
                 'type': LINE_USERACTION_TYPES.URI,
@@ -132,12 +134,18 @@ def cmd_homework(event):
                     'uri': dataItem['video']
                 }
             },
-            'actions': [] if dataItem['isFinished'] else [{
+            'actions': [{
+                'type': LINE_USERACTION_TYPES.POSTBACK,
+                'content': {
+                    'label': '已完成 ❤️',
+                    'data': 'action=empty'
+                }                
+            }] if dataItem['isFinished'] else [{
                 'type': LINE_USERACTION_TYPES.POSTBACK,
                 'content': {
                     'label': '完成',
                     'display_text': '我完成了 {}'.format(dataItem['baseMove']),
-                    'data': 'action=finish_homework;hwId={}'.format(dataItem['hwId'])
+                    'data': 'action=finish_homework;hwIid={}'.format(dataItem['hwIid'])
                 }
             }]
         }
@@ -165,29 +173,10 @@ def cmd_homework(event):
 
 # (User) Update homework info
 def cmd_finishHomework(event):
-    '''
-    Success response = 
-
-    '''    
-    # Get next class info
-    # resPayload = invokeLambda(LAMBDA.AIRTABLE, {
-    #     'eventType': AIR_EVENT_TYPES.FINISH_HOMEWORK,
-    #     'hwId': re.search('hwId=(.+?)(;|$)', event.postback.data)[1]
-    # })
-    data = re.search('hwId=(.+?)(;|$)', event.postback.data)[1]
-
-    def genReply(data):
-        if data:
-            return ''
-        else: return 'Something wrong 😢. Contact your 整合顧問 for further information.'
-
-    # Reply to the message
-    invokeLambda(LAMBDA.LINE, {
-        'eventType': LINE_EVENT_TYPES.REPLY,
-        'lineReplyToken': event.reply_token,
-        'replyMessage': data
-        # 'replyMessage': genReply(resPayload[0]['Data'])
-    })    
+    invokeLambda(LAMBDA.AIRTABLE, {
+        'eventType': AIR_EVENT_TYPES.FINISH_HOMEWORK,
+        'hwIid': re.search('hwIid=(.+?)(;|$)', event.postback.data)[1]
+    })
 
 
 #-- Handle MessageEvent and TextMessage type
@@ -218,7 +207,7 @@ def handle_message(event):
 def cmd_reminder(event):
     '''
     Success response = 
-    [{'Status': 'handle_reminder: OK', 'Data': [{'id': 'recGPvFMiUDaoO4', 'lineUserId': 'U9ae6458c650504a3e8380a1046e0f', 'lineDisplayName': 'CY', 'messageTime': '2019-10-28T13:13:00.000Z', 'messageContent': "Hello, this is a response from air."}]}]
+    [{'Status': 'handle_reminder: OK', 'Data': [{'iid': 'recGPvFMiUDaoO4', 'lineUserId': 'U9ae6458c650504a3e8380a1046e0f', 'lineDisplayName': 'CY', 'messageTime': '2019-10-28T13:13:00.000Z', 'messageContent': "Hello, this is a response from air."}]}]
     '''
     resPayload = invokeLambda(LAMBDA.AIRTABLE, {
         'eventType': AIR_EVENT_TYPES.REMINDER

@@ -1,8 +1,8 @@
 const { retrieve } = require('./operation.js');
 
 
-// Get aging member id by Line id
-exports.retrieveMemberIdByLineId = async function(base, lineUserId) {
+// Get aging member iid by Line id
+exports.retrieveMemberIidByLineId = async function(base, lineUserId) {
   const params = {
     base: base,
     sheet: 'LINE-MEMBER',
@@ -10,11 +10,11 @@ exports.retrieveMemberIdByLineId = async function(base, lineUserId) {
     return ({
       "lineUserId": record.fields.LineUserId,
       "lineDisplayName": record.fields.LineDisplayName,
-      "memberId": record.fields.學員 && record.fields.學員[0]  // Get [0] if not null
+      "memberIid": record.fields.學員 && record.fields.學員[0]  // Get [0] if not null
     })},
     filterRecord: (record) => record.lineUserId === lineUserId
   };
 
-  const memberId = (await retrieve(params))[0].memberId;  // Retrieve returns an array of records
-  return memberId;
+  const memberIid = (await retrieve(params))[0].memberIid;  // Retrieve returns an array of records
+  return memberIid;
 };

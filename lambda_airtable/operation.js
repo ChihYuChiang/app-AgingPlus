@@ -81,7 +81,7 @@ exports.create = function(params) {
 
 exports.find = function(params) {
   /*
-  Find by record ID, which is the internal record ID and is hidden from the Airtable frontend.
+  Find by record Iid, which is the internal record ID and is hidden from the Airtable frontend.
   */
   let { base, sheet, recordId } = params;
 
@@ -96,3 +96,30 @@ exports.find = function(params) {
     });
   });
 };
+
+exports.update = function(params) {
+  /*
+  Find by record Iid, and update the specified fields.
+  Example `entries` = [{
+    "id": recordIid,
+    "fields": {
+      "完成": true,
+    }
+  }]
+  */
+  let { base, sheet, entries } = params;
+
+  return new Promise((resolve, reject) => {
+    console.log(entries)
+    base(sheet).update(entries, (err, records) => {
+      if (err) {
+        console.error(err);
+        reject();
+      }
+      records.forEach((record) => {
+        console.log(`Updated ${record.id} in ${sheet}.`);
+      });
+      resolve();
+    });
+  });
+}

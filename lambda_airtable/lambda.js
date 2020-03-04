@@ -1,8 +1,8 @@
 const Airtable = require("airtable");
 const moment = require('moment-timezone');
 const has = require('lodash/has');
-const { retrieve, retrieveReduce, create, find } = require('./operation.js');
-const { retrieveMemberIdByLineId } = require('./operation-sp.js');
+const { retrieve, retrieveReduce, create, find, update } = require('./operation.js');
+const { retrieveMemberIidByLineId } = require('./operation-sp.js');
 const { filterUndefined } = require('./util');
 
 const base = new Airtable({ apiKey: process.env.AIRTABLE_APIKEY }).base(process.env.BASE_ID);
@@ -11,7 +11,8 @@ const AIR_EVENT_TYPES = {
   REMINDER: 'reminder',
   NEXT_CLASS: 'next_class',
   HOMEWORK: 'homework',
-  FINISH_HOMEWORK: 'finish_homework'
+  FINISH_HOMEWORK: 'finish_homework',
+  EMPTY: 'empty'
 };
 
 
@@ -44,7 +45,7 @@ async function handle_reminder(event) {
     base: base,
     sheet: 'LINE-MEMBER',
     processRecord: (record) => ({
-      "id": record.id,
+      "iid": record.id,  // Iid, internal id used by Airtable
       "lineUserId": record.fields.LineUserId,
       "lineDisplayName": record.fields.LineDisplayName,
       "messageTime": moment(record.fields.MessageTime),
@@ -68,7 +69,7 @@ async function handle_nextClass(event) {
     processRecord: (record) => ({
       "lineUserId": record.fields.LineUserId,
       "lineDisplayName": record.fields.LineDisplayName,
-      "memberId": record.fields.學員[0]
+      "memberIid": record.fields.學員[0]
     }),
     filterRecord: (record) => record.lineUserId === event.lineUserId
   };
@@ -79,13 +80,13 @@ async function handle_nextClass(event) {
     base: base,
     sheet: '課程',
     processRecord: (record) => ({
-      "memberId": record.fields.學員[0],
+      "memberIid": record.fields.學員[0],
       "classId": record.fields.編號,
       "classTime": moment(record.fields.日期時間),
       "classLocation": record.fields.地點,
-      "classTrainer": record.fields.教練1 && record.fields.教練1[0]
+      "classTrainerIid": record.fields.教練1 && record.fields.教練1[0]
     }),
-    filterRecord: (record) => record.memberId === target.memberId,
+    filterRecord: (record) => record.memberIid === target.memberIid,
     reduceRecord: (acc, record) => 
       record.classTime.isAfter(moment().subtract(0.5, 'hours')) && record.classTime.isBefore(acc.classTime) ?
       record : acc,
@@ -103,9 +104,13 @@ async function handle_nextClass(event) {
     const params_3 = {
       base: base,
       sheet: '教練',
-      recordId: nextClass.classTrainer
+      recordId: nextClass.classTrainerIid
     };
     nextClass.classTrainer = (await find(params_3)).fields.稱呼;
+
+    // Removing ids for saving bandwidth
+    delete nextClass.classTrainerIid;
+
   } else {
     // Replace `nextClass` with null when no match
     nextClass = null;
@@ -117,16 +122,16 @@ async function handle_nextClass(event) {
 
 async function handle_homework(event) {
   if(event.eventType !== AIR_EVENT_TYPES.HOMEWORK) { return; }
-  const memberId = await retrieveMemberIdByLineId(base, event.lineUserId);
+  const memberIid = await retrieveMemberIidByLineId(base, event.lineUserId);
   
   const params_1 = {
     base: base,
     sheet: '回家作業',
     processRecord: (record) => ({
-      "hwId": record.fields.編號,
-      "memberId": record.fields.學員[0],
+      "hwIid": record.id,
+      "memberIid": record.fields.學員[0],
       "hwDate": record.fields.日期,
-      "baseMoveId": record.fields.課程記錄_基本菜單[0],
+      "baseMoveIid": record.fields.課程記錄_基本菜單[0],
       "noOfSet": record.fields.幾組,
       "personalTip": record.fields.課程記錄_個人化提醒 && record.fields.課程記錄_個人化提醒[0],
       "image": record.fields.課程記錄_圖片 && record.fields.課程記錄_圖片[0].thumbnails.large.url,
@@ -134,31 +139,31 @@ async function handle_homework(event) {
       "isFinished": record.fields.完成 ? true : false
     }),
     filterRecord: (record) => (
-      record.memberId === memberId &&
+      record.memberIid === memberIid &&
       moment(record.hwDate).isSame(moment(), 'day')  // Is today's hw
     )
   };
   let homeworks = await retrieve(params_1);
 
-  // Replace memberId and baseMoveId by member and baseMove names
+  // Replace memberIid and baseMoveIid by member and baseMove names
   let promises = homeworks.map(async (homework) => {
     const params_2 = {
       base: base,
       sheet: '學員',
-      recordId: homework.memberId
+      recordId: homework.memberIid
     };
     homework.member = (await find(params_2)).fields.稱呼;
 
     const params_3 = {
       base: base,
       sheet: '基本菜單',
-      recordId: homework.baseMoveId
+      recordId: homework.baseMoveIid
     };
     homework.baseMove = (await find(params_3)).fields.名稱;
 
     // Removing ids for saving bandwidth
-    delete homework.memberId;
-    delete homework.baseMoveId;
+    delete homework.memberIid;
+    delete homework.baseMoveIid;
 
     return homework;
   });
@@ -166,6 +171,24 @@ async function handle_homework(event) {
 
   console.log(homeworks);
   return { Status: 'handle_homework: OK', Data: homeworks };
+}
+
+async function handle_finishHomework(event) {
+  if(event.eventType !== AIR_EVENT_TYPES.FINISH_HOMEWORK) { return; }
+  
+  const params = {
+    base: base,
+    sheet: '回家作業',
+    entries: [{
+      "id": event.hwIid,
+      "fields": {
+        "完成": true,
+      }
+    }]
+  };
+
+  await update(params);
+  return { Status: 'handle_finishHomework: OK' };
 }
 
 
@@ -187,5 +210,6 @@ exports.handler = handlerBuilder(
   handle_follow,
   handle_reminder,
   handle_nextClass,
-  handle_homework
+  handle_homework,
+  handle_finishHomework
 );

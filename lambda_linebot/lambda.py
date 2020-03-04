@@ -25,6 +25,7 @@ class AIR_EVENT_TYPES():
     REMINDER = 'reminder'
     NEXT_CLASS = 'next_class'
     HOMEWORK = 'homework'
+    FINISH_HOMEWORK = 'finish_homework'
 class LINE_EVENT_TYPES():
     PUSH = 'push'
     REPLY = 'reply'
@@ -59,11 +60,13 @@ def lambda_handler(requestEvent, context):
 #-- Handle PostbackEvent type
 @line_handler.add(PostbackEvent)
 def handle_postback(event):
-    eventAction = re.search('action=(.+);?', event.postback.data)[1]
+    eventAction = re.search('action=(.+?)(;|$)', event.postback.data)[1]
     if eventAction == AIR_EVENT_TYPES.NEXT_CLASS:
         cmd_nextClass(event)
     elif eventAction == AIR_EVENT_TYPES.HOMEWORK:
         cmd_homework(event)
+    elif eventAction == AIR_EVENT_TYPES.FINISH_HOMEWORK:
+        cmd_finishHomework(event)
 
 # (User) Reply next class info
 def cmd_nextClass(event):
@@ -130,10 +133,11 @@ def cmd_homework(event):
                 }
             },
             'actions': [] if dataItem['isFinished'] else [{
-                'type': LINE_USERACTION_TYPES.MESSAGE,
+                'type': LINE_USERACTION_TYPES.POSTBACK,
                 'content': {
                     'label': '完成',
-                    'text': '我完成了 {}'.format(dataItem['baseMove'])
+                    'display_text': '我完成了 {}'.format(dataItem['baseMove']),
+                    'data': 'action=finish_homework;hwId={}'.format(dataItem['hwId'])
                 }
             }]
         }
@@ -158,6 +162,32 @@ def cmd_homework(event):
         'lineReplyToken': event.reply_token,
         **genReply(resPayload[0]['Data'])
     })
+
+# (User) Update homework info
+def cmd_finishHomework(event):
+    '''
+    Success response = 
+
+    '''    
+    # Get next class info
+    # resPayload = invokeLambda(LAMBDA.AIRTABLE, {
+    #     'eventType': AIR_EVENT_TYPES.FINISH_HOMEWORK,
+    #     'hwId': re.search('hwId=(.+?)(;|$)', event.postback.data)[1]
+    # })
+    data = re.search('hwId=(.+?)(;|$)', event.postback.data)[1]
+
+    def genReply(data):
+        if data:
+            return ''
+        else: return 'Something wrong 😢. Contact your 整合顧問 for further information.'
+
+    # Reply to the message
+    invokeLambda(LAMBDA.LINE, {
+        'eventType': LINE_EVENT_TYPES.REPLY,
+        'lineReplyToken': event.reply_token,
+        'replyMessage': data
+        # 'replyMessage': genReply(resPayload[0]['Data'])
+    })    
 
 
 #-- Handle MessageEvent and TextMessage type

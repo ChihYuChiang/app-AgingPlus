@@ -98,7 +98,7 @@ def replyMessage_carousel(event):
                 'content': {
                     'label': '完成',
                     'uri'/'text'/'display_text': '我完成了 抱狐狸',
-                    ('data': {}) -- Needed when postback
+                    ('data': 'action=homework;happy=yes') -- Needed when postback
                 }
             },
             'actions': [{

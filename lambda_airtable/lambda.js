@@ -10,7 +10,8 @@ const AIR_EVENT_TYPES = {
   FOLLOW: 'follow',
   REMINDER: 'reminder',
   NEXT_CLASS: 'next_class',
-  HOMEWORK: 'homework'
+  HOMEWORK: 'homework',
+  FINISH_HOMEWORK: 'finish_homework'
 };
 
 
@@ -124,7 +125,7 @@ async function handle_homework(event) {
     processRecord: (record) => ({
       "hwId": record.fields.編號,
       "memberId": record.fields.學員[0],
-      "hwDate": moment(record.fields.日期),
+      "hwDate": record.fields.日期,
       "baseMoveId": record.fields.課程記錄_基本菜單[0],
       "noOfSet": record.fields.幾組,
       "personalTip": record.fields.課程記錄_個人化提醒 && record.fields.課程記錄_個人化提醒[0],
@@ -134,7 +135,7 @@ async function handle_homework(event) {
     }),
     filterRecord: (record) => (
       record.memberId === memberId &&
-      record.hwDate.isSame(moment(), 'day')  // Is today's hw
+      moment(record.hwDate).isSame(moment(), 'day')  // Is today's hw
     )
   };
   let homeworks = await retrieve(params_1);

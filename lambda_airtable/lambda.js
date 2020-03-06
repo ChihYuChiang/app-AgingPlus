@@ -2,7 +2,7 @@ const Airtable = require("airtable");
 const moment = require('moment-timezone');
 const has = require('lodash/has');
 const { retrieve, retrieveReduce, create, find, update } = require('./operation.js');
-const { retrieveMemberIidByLineId } = require('./operation-sp.js');
+const { retrieveMemberIidByLineId, isLineAdmin } = require('./operation-sp.js');
 const { filterUndefined } = require('./util');
 
 const base = new Airtable({ apiKey: process.env.AIRTABLE_APIKEY }).base(process.env.BASE_ID);
@@ -39,7 +39,9 @@ async function handle_follow(event) {
 };
 
 async function handle_reminder(event) {
-  if(event.eventType !== AIR_EVENT_TYPES.REMINDER) { return; }
+  // Only Line admin can send reminder
+  if(event.eventType !== AIR_EVENT_TYPES.REMINDER ||
+    !(await isLineAdmin(base, event.lineUserId))) { return; }
 
   const params = {
     base: base,

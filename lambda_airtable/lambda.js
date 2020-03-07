@@ -36,7 +36,7 @@ async function handle_follow(event) {
   // TODO: handle reject error
   await create(params);
   return { Status: 'handle_follow: OK' };
-};
+}
 
 async function handle_reminder(event) {
   // Only Line admin can send reminder
@@ -59,7 +59,7 @@ async function handle_reminder(event) {
   const targets = await retrieve(params);
   
   return { Status: 'handle_reminder: OK', Data: targets };
-};
+}
 
 async function handle_nextClass(event) {
   if(event.eventType !== AIR_EVENT_TYPES.NEXT_CLASS) { return; }
@@ -120,7 +120,7 @@ async function handle_nextClass(event) {
 
   console.log(nextClass);
   return { Status: 'handle_nextClass: OK', Data: nextClass };
-};
+}
 
 async function handle_homework(event) {
   if(event.eventType !== AIR_EVENT_TYPES.HOMEWORK) { return; }

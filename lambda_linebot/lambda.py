@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import re
+from typing import List, Dict
 from datetime import datetime
 from boto3 import client as boto3_client
 from linebot import WebhookHandler
@@ -13,6 +14,9 @@ from linebot.models import FollowEvent, MessageEvent, TextMessage, PostbackEvent
 
 # -- Setup
 # TODO: encrypt keys on AWS
+# TODO: mypy when matured
+# TODO: pytest with testing db
+# TODO: lambda layer to share enum and others
 lambda_client = boto3_client('lambda', region_name="us-east-1")
 
 # Get channel_secret from environment variable
@@ -45,13 +49,17 @@ class LINE_EVENT_TYPES():
     GET_PROFILE = 'get_profile'
 
 
+class LINE_MESSAGE_TEMPLATES():
+    CLASS_HISTORY = 'class_history'
+
+
 class LINE_USERACTION_TYPES():
     POSTBACK = 'post_back'
     MESSAGE = 'message'
     URI = 'uri'
 
 
-class LAMBDA():
+class LAMBDAS():
     AIRTABLE = 'Airtable'
     LINE = 'Line'
 
@@ -88,6 +96,7 @@ def lambda_handler(requestEvent, context):
 
 
 # -- Handle PostbackEvent type
+# TODO: make it middleware form
 @line_handler.add(PostbackEvent)
 def handle_postback(event):
     eventAction = re.search('action=(.+?)(;|$)', event.postback.data)[1]
@@ -110,7 +119,7 @@ def cmd_nextClass(event):
     [{'Status': 'handle_nextClass: OK', 'Data': {'memberIid': 'recMgb6f5sfuhVWAs', 'classId': '1900322', 'classTime': '2019-11-14T09:00:00+08:00', 'classLocation': 'home', 'classTrainer': 'CY'}}]
     '''
     # Get next class info
-    resPayload = invokeLambda(LAMBDA.AIRTABLE, {
+    resPayload = invokeLambda(LAMBDAS.AIRTABLE, {
         'eventType': AIR_EVENT_TYPES.NEXT_CLASS,
         'lineUserId': event.source.user_id
     })
@@ -126,7 +135,7 @@ def cmd_nextClass(event):
             return 'We don\'t have record of your next class 😢.'
 
     # Reply to the message
-    invokeLambda(LAMBDA.LINE, {
+    invokeLambda(LAMBDAS.LINE, {
         'eventType': LINE_EVENT_TYPES.REPLY,
         'lineReplyToken': event.reply_token,
         'replyMessage': genReply(resPayload[0]['Data'])
@@ -150,7 +159,7 @@ def cmd_homework(event):
     }]}]
     '''
     # Get homework info
-    resPayload = invokeLambda(LAMBDA.AIRTABLE, {
+    resPayload = invokeLambda(LAMBDAS.AIRTABLE, {
         'eventType': AIR_EVENT_TYPES.HOMEWORK,
         'lineUserId': event.source.user_id
     })
@@ -201,7 +210,7 @@ def cmd_homework(event):
             }
 
     # Reply to the request
-    invokeLambda(LAMBDA.LINE, {
+    invokeLambda(LAMBDAS.LINE, {
         'lineReplyToken': event.reply_token,
         **genReply(resPayload[0]['Data'])
     })
@@ -209,7 +218,7 @@ def cmd_homework(event):
 
 # (User) Update homework info
 def btn_finishHomework(event):
-    invokeLambda(LAMBDA.AIRTABLE, {
+    invokeLambda(LAMBDAS.AIRTABLE, {
         'eventType': AIR_EVENT_TYPES.FINISH_HOMEWORK,
         'hwIid': re.search('hwIid=(.+?)(;|$)', event.postback.data)[1]
     })
@@ -218,99 +227,41 @@ def btn_finishHomework(event):
 # (User) Reply class history
 def cmd_classHistory(event):
     '''
-    Success response = 
+    Success response =
 
     '''
-    # TODO: Move template to Line lambda
     # Get class history
-    # resPayload = invokeLambda(LAMBDA.AIRTABLE, {
+    # resPayload = invokeLambda(LAMBDAS.AIRTABLE, {
     #     'eventType': AIR_EVENT_TYPES.CLASS_HISTORY,
     #     'lineUserId': event.source.user_id
     # })
+    # if data:  # If air res data is not null
+    #     return {
+    #         'eventType': LINE_EVENT_TYPES.REPLY_FLEX,
+    #         'replyMessage': None
+    #     }
+    # else:
+    #     return {
+    #         'eventType': LINE_EVENT_TYPES.REPLY,
+    #         'replyMessage': 'We don\'t have record of your past classes 😢.'
+    #     }
 
-    def genReplyItem(i, dataItem):
-        return {
-            "type": "bubble",
-            "size": "nano",
-            "header": {
-                "type": "box",
-                "layout": "vertical",
-                "contents": [
-                {
-                    "type": "text",
-                    "text": dataItem['date'],
-                    "color": "#ffffff",
-                    "align": "start",
-                    "size": "md",
-                    "gravity": "center"
-                }
-                ],
-                "backgroundColor": "#27ACB2",
-                "paddingTop": "19px",
-                "paddingAll": "12px",
-                "paddingBottom": "16px"
-            },
-            "body": {
-                "type": "box",
-                "layout": "vertical",
-                "contents": [
-                {
-                    "type": "text",
-                    "text": dataItem['time'],
-                    "size": "sm",
-                    "align": "start",
-                    "color": "#8C8C8C"
-                },
-                {
-                    "type": "text",
-                    "text": dataItem['location'],
-                    "size": "sm",
-                    "wrap": True,
-                    "color": "#8C8C8C"
-                },
-                {
-                    "type": "text",
-                    "text": dataItem['trainer'],
-                    "size": "sm",
-                    "color": "#8C8C8C"
-                }
-                ],
-                "spacing": "md",
-                "paddingAll": "12px"
-            },
-            "action": {
-                "type": LINE_USERACTION_TYPES.POSTBACK,
-                "label": "action",
-                "data": 'action=class_record;classIid={}'.format(dataItem['classIid']),
-                "displayText": "{} 課程內容".format(dataItem['date'])
-            },
-            "styles": {
-                "footer": {
-                "separator": False
-                }
-            }
+    tmp: List[Dict] = [
+        {
+            'date': '20190105',
+            'time': '0900',
+            'location': 'home',
+            'trainer': 'James',
+            'classIid': 12345
         }
-
-    def genReply(data):
-        if data:  # If the res data is not null
-            reply = [genReplyItem(i, dataItem) for i, dataItem in enumerate(data, 1)]
-
-            # Make dict into json string
-            return {
-                'eventType': LINE_EVENT_TYPES.REPLY_FLEX,
-                'flexType': 'carousel',
-                'replyMessage': json.dumps(reply)
-            }
-        else:
-            return {
-                'eventType': LINE_EVENT_TYPES.REPLY,
-                'replyMessage': 'We don\'t have record of your past classes 😢.'
-            }
+    ]
 
     # Reply to the request
-    invokeLambda(LAMBDA.LINE, {
+    invokeLambda(LAMBDAS.LINE, {
+        'eventType': LINE_EVENT_TYPES.REPLY_FLEX,
         'lineReplyToken': event.reply_token,
-        **genReply(resPayload[0]['Data'])
+        'replyTemplate': LINE_MESSAGE_TEMPLATES.CLASS_HISTORY,
+        'replyContent': tmp
     })
 
 
@@ -327,7 +278,7 @@ def handle_message(event):
     }))
 
     # Default reply replicates the incoming message
-    invokeLambda(LAMBDA.LINE, {
+    invokeLambda(LAMBDAS.LINE, {
         'eventType': LINE_EVENT_TYPES.REPLY,
         'lineReplyToken': event.reply_token,
         'replyMessage': event.message.text
@@ -344,13 +295,13 @@ def adm_reminder(event):
     Success response =
     [{'Status': 'handle_reminder: OK', 'Data': [{'iid': 'recGPvFMiUDaoO4', 'lineUserId': 'U9ae6458c650504a3e8380a1046e0f', 'lineDisplayName': 'CY', 'messageTime': '2019-10-28T13:13:00.000Z', 'messageContent': "Hello, this is a response from air."}]}]
     '''
-    resPayload = invokeLambda(LAMBDA.AIRTABLE, {
+    resPayload = invokeLambda(LAMBDAS.AIRTABLE, {
         'eventType': AIR_EVENT_TYPES.REMINDER
     })
 
     remindedInd = []
     for target in resPayload[0]['Data']:
-        invokeLambda(LAMBDA.LINE, {
+        invokeLambda(LAMBDAS.LINE, {
             'eventType': LINE_EVENT_TYPES.PUSH,
             'lineUserId': target['lineUserId'],
             'pushMessage': target['messageContent']
@@ -358,7 +309,7 @@ def adm_reminder(event):
         remindedInd.append(target['lineDisplayName'])
 
     reply = 'Reminder sent to {}.'.format(', '.join(remindedInd))
-    invokeLambda(LAMBDA.LINE, {
+    invokeLambda(LAMBDAS.LINE, {
         'eventType': LINE_EVENT_TYPES.REPLY,
         'lineReplyToken': event.reply_token,
         'replyMessage': reply
@@ -368,7 +319,7 @@ def adm_reminder(event):
 # -- Handle FollowEvent (when someone adds this account as friend)
 @line_handler.add(FollowEvent)
 def handle_follow(event):
-    resPayload = invokeLambda(LAMBDA.LINE, {
+    resPayload = invokeLambda(LAMBDAS.LINE, {
         'eventType': LINE_EVENT_TYPES.GET_PROFILE,
         'lineUserId': event.source.user_id
     })
@@ -376,13 +327,13 @@ def handle_follow(event):
     userProfilePic = resPayload['Data']['pictureUrl']
 
     reply = 'Hello, {} 😄.'.format(userDisplayName)
-    invokeLambda(LAMBDA.LINE, {
+    invokeLambda(LAMBDAS.LINE, {
         'eventType': LINE_EVENT_TYPES.REPLY,
         'lineReplyToken': event.reply_token,
         'replyMessage': reply
     })
 
-    invokeLambda(LAMBDA.AIRTABLE, {
+    invokeLambda(LAMBDAS.AIRTABLE, {
         'eventType': AIR_EVENT_TYPES.FOLLOW,
         'lineUserId': event.source.user_id,
         'lineDisplayName': userDisplayName,

@@ -1,7 +1,7 @@
 #Path contains build folder and lambda.py file
 $path = "C:\Users\chihy\OneDrive\Ongoing - OneDrive\app-AgingPlus\lambda_line\"
 
-Copy-Item $($path + 'lambda.py') `
+Copy-Item $($path + '*.py') `
 	-Destination $($path + 'build')
 
 Set-Location "C:\Program Files\7-Zip\"

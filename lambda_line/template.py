@@ -49,7 +49,7 @@ def carousel_homework(content: List[Dict]) -> Dict:
             ),
             'actions': [userAction(LINE_USERACTION_TYPES.POSTBACK)(
                 label='已完成 ❤️',
-                data='action=empty'     
+                data='action=empty'
             )] if itemContent['isFinished'] else [userAction(LINE_USERACTION_TYPES.POSTBACK)(
                 label='完成',
                 display_text='我完成了 {}'.format(itemContent['baseMove']),
@@ -66,6 +66,9 @@ def carousel_homework(content: List[Dict]) -> Dict:
 def flex_classHistory(content: List[Dict]) -> Dict:
     '''
     Flex with carousel format.
+    content [{
+        'classIid': 'recvQFMu2DOSqwuBm', 'classTime': '1226', 'classLocation': '學員家', 'classDate': '0900', 'classTrainer': 'James'
+    }, {...}]
     '''
     def genItem(i, itemContent):
         return {
@@ -76,7 +79,7 @@ def flex_classHistory(content: List[Dict]) -> Dict:
                 "layout": "vertical",
                 "contents": [{
                     "type": "text",
-                    "text": itemContent['date'],
+                    "text": itemContent['classDate'],
                     "color": "#ffffff",
                     "align": "start",
                     "size": "md",
@@ -92,19 +95,19 @@ def flex_classHistory(content: List[Dict]) -> Dict:
                 "layout": "vertical",
                 "contents": [{
                     "type": "text",
-                    "text": itemContent['time'],
+                    "text": itemContent['classTime'],
                     "size": "sm",
                     "align": "start",
                     "color": "#8C8C8C"
                 }, {
                     "type": "text",
-                    "text": itemContent['location'],
+                    "text": itemContent.get('classLocation', '上課場地'),
                     "size": "sm",
                     "wrap": True,
                     "color": "#8C8C8C"
                 }, {
                     "type": "text",
-                    "text": itemContent['trainer'],
+                    "text": itemContent.get('classTrainer', '樂齡教練'),
                     "size": "sm",
                     "color": "#8C8C8C"
                 }],
@@ -115,7 +118,7 @@ def flex_classHistory(content: List[Dict]) -> Dict:
                 "type": LINE_USERACTION_TYPES.POSTBACK,
                 "label": "action",
                 "data": 'action=class_record;classIid={}'.format(itemContent['classIid']),
-                "displayText": "{} 課程內容".format(itemContent['date'])
+                "displayText": "{} 課程內容".format(itemContent['classDate'])
             },
             "styles": {
                 "footer": {

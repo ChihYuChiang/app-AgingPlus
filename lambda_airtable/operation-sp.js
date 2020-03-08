@@ -32,6 +32,6 @@ exports.isLineAdmin = async function(base, lineUserId) {
     filterRecord: (record) => record.lineUserId === lineUserId
   };
 
-  const isAdmin = (await retrieve(params))[0].isAdmin;  // Retrieve returns an array of records
+  const isAdmin = (await retrieve(params))[0].isAdmin;
   return isAdmin;
 };

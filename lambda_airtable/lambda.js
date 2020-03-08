@@ -5,6 +5,8 @@ const { retrieve, retrieveReduce, create, find, update } = require('./operation.
 const { retrieveMemberIidByLineId, isLineAdmin } = require('./operation-sp.js');
 const { filterUndefined } = require('./util');
 
+
+// -- Setup
 const base = new Airtable({ apiKey: process.env.AIRTABLE_APIKEY }).base(process.env.BASE_ID);
 const AIR_EVENT_TYPES = {
   FOLLOW: 'follow',
@@ -12,11 +14,12 @@ const AIR_EVENT_TYPES = {
   NEXT_CLASS: 'next_class',
   HOMEWORK: 'homework',
   FINISH_HOMEWORK: 'finish_homework',
+  CLASS_HISTORY: 'class_history',
   EMPTY: 'empty'
 };
 
 
-//-- Handler middlewares
+// -- Handler middlewares
 async function handle_follow(event) {
   if(event.eventType !== AIR_EVENT_TYPES.FOLLOW) { return; }
 
@@ -37,6 +40,7 @@ async function handle_follow(event) {
   await create(params);
   return { Status: 'handle_follow: OK' };
 }
+
 
 async function handle_reminder(event) {
   // Only Line admin can send reminder
@@ -61,24 +65,13 @@ async function handle_reminder(event) {
   return { Status: 'handle_reminder: OK', Data: targets };
 }
 
+
 async function handle_nextClass(event) {
   if(event.eventType !== AIR_EVENT_TYPES.NEXT_CLASS) { return; }
+  const memberIid = await retrieveMemberIidByLineId(base, event.lineUserId);
 
-  // Use Line ID to get aging member id
+  // Use aging member iid get next class: time > (current time - 0.5hr) && earliest
   const params_1 = {
-    base: base,
-    sheet: 'LINE-MEMBER',
-    processRecord: (record) => ({
-      "lineUserId": record.fields.LineUserId,
-      "lineDisplayName": record.fields.LineDisplayName,
-      "memberIid": record.fields.學員[0]
-    }),
-    filterRecord: (record) => record.lineUserId === event.lineUserId
-  };
-  const target = (await retrieve(params_1))[0]; //Retrieve returns an array
-
-  // Use aging member id get next class: time > (current time - 0.5hr) && earliest
-  const params_2 = {
     base: base,
     sheet: '課程',
     processRecord: (record) => ({
@@ -88,27 +81,27 @@ async function handle_nextClass(event) {
       "classLocation": record.fields.地點,
       "classTrainerIid": record.fields.教練1 && record.fields.教練1[0]
     }),
-    filterRecord: (record) => record.memberIid === target.memberIid,
+    filterRecord: (record) => record.memberIid === memberIid,
     reduceRecord: (acc, record) => 
       record.classTime.isAfter(moment().subtract(0.5, 'hours')) && record.classTime.isBefore(acc.classTime) ?
       record : acc,
     reduceDefault: { "classTime": moment().add(100, 'years') }
   };
-  // When no entry matches, retrieveReduce returned `reduceDefault`
-  let nextClass = await retrieveReduce(params_2);
+  // `reduceDefault` prevents error when no entry returned
+  let nextClass = await retrieveReduce(params_1);
 
   // Post processing
-  if (has(nextClass, 'memberId') && nextClass.classTime.isAfter(moment().subtract(0.5, 'hours'))) {
-    //Return time in local format
+  if (has(nextClass, 'memberIid') && nextClass.classTime.isAfter(moment().subtract(0.5, 'hours'))) {
+    // Return time in local format
     nextClass.classTime = nextClass.classTime.tz('Asia/Taipei').format();
 
     // Get trainer info
-    const params_3 = {
+    const params_2 = {
       base: base,
       sheet: '教練',
       recordId: nextClass.classTrainerIid
     };
-    nextClass.classTrainer = (await find(params_3)).fields.稱呼;
+    nextClass.classTrainer = (await find(params_2)).fields.稱呼;
 
     // Removing ids for saving bandwidth
     delete nextClass.classTrainerIid;
@@ -121,6 +114,7 @@ async function handle_nextClass(event) {
   console.log(nextClass);
   return { Status: 'handle_nextClass: OK', Data: nextClass };
 }
+
 
 async function handle_homework(event) {
   if(event.eventType !== AIR_EVENT_TYPES.HOMEWORK) { return; }
@@ -175,6 +169,7 @@ async function handle_homework(event) {
   return { Status: 'handle_homework: OK', Data: homeworks };
 }
 
+
 async function handle_finishHomework(event) {
   if(event.eventType !== AIR_EVENT_TYPES.FINISH_HOMEWORK) { return; }
   
@@ -194,11 +189,82 @@ async function handle_finishHomework(event) {
 }
 
 
-//-- Main handler
+async function handle_classHistory(event) {
+  if(event.eventType !== AIR_EVENT_TYPES.CLASS_HISTORY) { return; }
+  const memberIid = await retrieveMemberIidByLineId(base, event.lineUserId);
+
+  // Use aging member iid get passed classes: max 5 by time && 完成 && < now - 1hr
+  const params_1 = {
+    base: base,
+    sheet: '課程',
+    processRecord: (record) => ({
+      "memberIid": record.fields.學員[0],
+      "classIid": record.id,
+      "classTime": moment(record.fields.日期時間),
+      "classLocation": record.fields.地點,
+      "classTrainerIid": record.fields.教練1 && record.fields.教練1[0],
+      "attendance": record.fields.出席狀態
+    }),
+    filterRecord: (record) =>
+      record.memberIid === memberIid &&
+      record.attendance === "完成",
+    reduceRecord: (acc, record) => {
+      if (record.classTime.isBefore(moment().subtract(1, 'hours')) &&
+      record.classTime.isAfter(acc.slice(-1)[0].classTime)) {  // If more recent than the min
+        acc.pop();  // Remove the last
+        acc.push(record);
+
+        // Sort from the most recent (0) to the most distant past (-1)
+        return acc.sort((a, b) => a.classTime.isAfter(b.classTime) ? -1 : 1);
+      } else {
+        return acc;
+      }
+    },
+    reduceDefault: Array(5).fill({ "classTime": moment().subtract(100, 'years') })
+  };
+  const lastFewClasses = await retrieveReduce(params_1);
+
+
+  // Post processing
+  let classHistory_promises = lastFewClasses.map(async (pastClass) => {
+    if (has(pastClass, 'memberIid')) {
+      // Return time in local format
+      const classDateTime = pastClass.classTime.tz('Asia/Taipei');
+      pastClass.classTime = classDateTime.format("HHmm");
+      pastClass.classDate = classDateTime.format("YYYYMMDD");
+
+      // Get trainer info
+      const params_2 = {
+        base: base,
+        sheet: '教練',
+        recordId: pastClass.classTrainerIid
+      };
+      pastClass.classTrainer = (await find(params_2)).fields.稱呼;
+  
+      // Removing unnecessary for saving bandwidth
+      delete pastClass.memberIid;
+      delete pastClass.classTrainerIid;
+      delete pastClass.attendance;
+
+      return pastClass;
+  
+    } else {
+      // Replace with null when not satisfy
+      return null;
+    }
+  });
+  let classHistory = filterUndefined(await Promise.all(classHistory_promises));
+
+  console.log(classHistory);
+  return { Status: 'handle_classHistory: OK', Data: classHistory };
+}
+
+
+// -- Main handler
 // TODO: remove the awkward list results
 function handlerBuilder(...funcs) {
   return async (event, context) => {
-    // Concurrent fire all handlers
+    // Concurrent fire all handlers; make it sequential when needed
     let promises = funcs.map((func) => func(event));
     let results = filterUndefined(await Promise.all(promises));
 
@@ -213,5 +279,6 @@ exports.handler = handlerBuilder(
   handle_reminder,
   handle_nextClass,
   handle_homework,
-  handle_finishHomework
+  handle_finishHomework,
+  handle_classHistory
 );

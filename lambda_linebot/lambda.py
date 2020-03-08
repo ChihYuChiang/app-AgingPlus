@@ -2,7 +2,6 @@ import os
 import sys
 import json
 import re
-from typing import List, Dict
 from datetime import datetime
 from boto3 import client as boto3_client
 from linebot import WebhookHandler
@@ -81,8 +80,7 @@ def lambda_handler(requestEvent, context):
     body = requestEvent['body']
 
     # Check the body-signature match and handle the event
-    try:
-        line_handler.handle(body, signature)
+    try: line_handler.handle(body, signature)
     except InvalidSignatureError:
         print("Invalid signature. Please check your channel access token/channel secret.")
         raise
@@ -95,16 +93,14 @@ def lambda_handler(requestEvent, context):
 @line_handler.add(PostbackEvent)
 def handle_postback(event):
     eventAction = re.search('action=(.+?)(;|$)', event.postback.data)[1]
-    if eventAction == AIR_EVENT_TYPES.EMPTY:
-        pass
-    elif eventAction == AIR_EVENT_TYPES.NEXT_CLASS:
-        cmd_nextClass(event)
-    elif eventAction == AIR_EVENT_TYPES.HOMEWORK:
-        cmd_homework(event)
-    elif eventAction == AIR_EVENT_TYPES.CLASS_HISTORY:
-        cmd_classHistory(event)
-    elif eventAction == AIR_EVENT_TYPES.FINISH_HOMEWORK:
-        btn_finishHomework(event)
+    handlerMapping = {
+        AIR_EVENT_TYPES.EMPTY: lambda x: None,
+        AIR_EVENT_TYPES.NEXT_CLASS: cmd_nextClass,
+        AIR_EVENT_TYPES.HOMEWORK: cmd_homework,
+        AIR_EVENT_TYPES.CLASS_HISTORY: cmd_classHistory,
+        AIR_EVENT_TYPES.FINISH_HOMEWORK: btn_finishHomework
+    }
+    handlerMapping[eventAction](event)
 
 
 # (User) Reply next class info
@@ -159,6 +155,7 @@ def cmd_homework(event):
         'lineUserId': event.source.user_id
     })
 
+    # TODO: Move switchReply as shared func
     def switchReply(data):
         if data:  # If the res data is not null
             return {
@@ -191,40 +188,34 @@ def btn_finishHomework(event):
 def cmd_classHistory(event):
     '''
     Success response =
-
+    [{'Status': 'handle_classHistory: OK', 'Data': [{
+        'classIid': 'recvQFMu2DOSqwuBm', 'classTime': '1226', 'classLocation': '學員家', 'classDate': '0900', 'classTrainer': 'James'}, {
+        'classIid': 'recNO0A5FQCxMopYZ', 'classTime': '0927', 'classLocation': '學員主要戶外場地', 'classDate': '0930', 'classTrainer': 'James'
+    }]}]
     '''
     # Get class history
-    # resPayload = invokeLambda(LAMBDAS.AIRTABLE, {
-    #     'eventType': AIR_EVENT_TYPES.CLASS_HISTORY,
-    #     'lineUserId': event.source.user_id
-    # })
-    # if data:  # If air res data is not null
-    #     return {
-    #         'eventType': LINE_EVENT_TYPES.REPLY_FLEX,
-    #         'replyMessage': None
-    #     }
-    # else:
-    #     return {
-    #         'eventType': LINE_EVENT_TYPES.REPLY,
-    #         'replyMessage': 'We don\'t have record of your past classes 😢.'
-    #     }
+    resPayload = invokeLambda(LAMBDAS.AIRTABLE, {
+        'eventType': AIR_EVENT_TYPES.CLASS_HISTORY,
+        'lineUserId': event.source.user_id
+    })
 
-    tmp: List[Dict] = [
-        {
-            'date': '20190105',
-            'time': '0900',
-            'location': 'home',
-            'trainer': 'James',
-            'classIid': 12345
-        }
-    ]
+    def switchReply(data):
+        if data:  # If air res data is not null
+            return {
+                'eventType': LINE_EVENT_TYPES.REPLY_FLEX,
+                'replyTemplate': LINE_MESSAGE_TEMPLATES.CLASS_HISTORY,
+                'replyContent': data
+            }
+        else:
+            return {
+                'eventType': LINE_EVENT_TYPES.REPLY,
+                'replyMessage': 'We don\'t have record of your past classes 😢.'
+            }
 
     # Reply to the request
     invokeLambda(LAMBDAS.LINE, {
-        'eventType': LINE_EVENT_TYPES.REPLY_FLEX,
         'lineReplyToken': event.reply_token,
-        'replyTemplate': LINE_MESSAGE_TEMPLATES.CLASS_HISTORY,
-        'replyContent': tmp
+        **switchReply(resPayload[0]['Data'])
     })
 
 

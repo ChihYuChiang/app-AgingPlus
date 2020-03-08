@@ -48,9 +48,9 @@ exports.retrieveReduce = async function(params) {
 
   const targetEntries = await exports.retrieve(params);
 
-  const targetEntry = targetEntries.reduce(reduceRecord, reduceDefault);
+  const reducedOutput = targetEntries.reduce(reduceRecord, reduceDefault);
   console.log('Reduced records.')
-  return targetEntry
+  return reducedOutput
 };
 
 exports.create = function(params) {

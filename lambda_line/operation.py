@@ -35,6 +35,7 @@ def replyMessage(lineChannel, event):
     except LineBotApiError: raise
 
 
+# TODO: Modify alt_text, which will be seen by user in notification
 def replyMessage_carousel(lineChannel, event):
     '''
     event {

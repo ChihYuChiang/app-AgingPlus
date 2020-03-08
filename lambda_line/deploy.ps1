@@ -5,7 +5,7 @@ Copy-Item $($path + '*.py') `
 	-Destination $($path + 'build')
 
 Set-Location "C:\Program Files\7-Zip\"
-.\7z a $($path + 'Line.zip') `
+.\7z u $($path + 'Line.zip') `
 	$($path + 'build\*')
 
 aws lambda update-function-code `

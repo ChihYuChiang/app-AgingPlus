@@ -6,7 +6,7 @@ Copy-Item $($path + '*.js') `
 
 #Use 7z to compress instead of powershell (which sucks) to make the file path compatible in linux systems
 Set-Location "C:\Program Files\7-Zip\"
-.\7z a $($path + 'Airtable.zip') `
+.\7z u $($path + 'Airtable.zip') `
 	$($path + 'build\*') $($path + 'node_modules')
 
 aws lambda update-function-code `

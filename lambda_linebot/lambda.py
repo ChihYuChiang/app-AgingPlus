@@ -50,13 +50,8 @@ class LINE_EVENT_TYPES():
 
 
 class LINE_MESSAGE_TEMPLATES():
+    HOMEWORK = 'homework'
     CLASS_HISTORY = 'class_history'
-
-
-class LINE_USERACTION_TYPES():
-    POSTBACK = 'post_back'
-    MESSAGE = 'message'
-    URI = 'uri'
 
 
 class LAMBDAS():
@@ -164,46 +159,14 @@ def cmd_homework(event):
         'lineUserId': event.source.user_id
     })
 
-    def genReplyItem(i, dataItem):
-        return {
-            'main': {
-                'thumbnail_image_url': dataItem['image'],
-                'title': '回家作業 {}：{}'.format(i, dataItem['baseMove']),
-                'text': '{} 組'.format(dataItem['noOfSet'])
-            },
-            'defaultAction': {
-                'type': LINE_USERACTION_TYPES.URI,
-                'content': {
-                    'label': '影片',
-                    'uri': dataItem['video']
-                }
-            },
-            'actions': [{
-                'type': LINE_USERACTION_TYPES.POSTBACK,
-                'content': {
-                    'label': '已完成 ❤️',
-                    'data': 'action=empty'
-                }
-            }] if dataItem['isFinished'] else [{
-                'type': LINE_USERACTION_TYPES.POSTBACK,
-                'content': {
-                    'label': '完成',
-                    'display_text': '我完成了 {}'.format(dataItem['baseMove']),
-                    'data': 'action=finish_homework;hwIid={}'.format(dataItem['hwIid'])
-                }
-            }]
-        }
-
-    def genReply(data):
+    def switchReply(data):
         if data:  # If the res data is not null
-            reply = [genReplyItem(i, dataItem) for i, dataItem in enumerate(data, 1)]
-
-            # Make dict into json string
             return {
                 'eventType': LINE_EVENT_TYPES.REPLY_CAROUSEL,
-                'replyMessage': json.dumps(reply)
+                'replyTemplate': LINE_MESSAGE_TEMPLATES.HOMEWORK,
+                'replyContent': data
             }
-        else:
+        else:  # TODO: Also move messages to line lambda
             return {
                 'eventType': LINE_EVENT_TYPES.REPLY,
                 'replyMessage': 'We don\'t have record of your homework 😢.'
@@ -212,7 +175,7 @@ def cmd_homework(event):
     # Reply to the request
     invokeLambda(LAMBDAS.LINE, {
         'lineReplyToken': event.reply_token,
-        **genReply(resPayload[0]['Data'])
+        **switchReply(resPayload[0]['Data'])
     })
 
 

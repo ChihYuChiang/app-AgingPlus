@@ -1,8 +1,6 @@
-import json
 from linebot.exceptions import LineBotApiError
 from linebot.models import TextSendMessage, TemplateSendMessage, FlexSendMessage
-from linebot.models import CarouselTemplate, CarouselColumn
-from template import getTemplate, userAction
+from template import getTemplate
 
 
 def pushMessage(lineChannel, event):
@@ -19,6 +17,7 @@ def pushMessage(lineChannel, event):
     )
 
 
+# TODO: Combine reply functions
 def replyMessage(lineChannel, event):
     '''
     event {
@@ -41,47 +40,16 @@ def replyMessage_carousel(lineChannel, event):
     event {
         'eventType': LINE_EVENT_TYPES.REPLY_CAROUSEL,
         'lineReplyToken': event.reply_token,
-        'replyMessage': [{
-            'main': {
-                'thumbnail_image_url': 'https://dl.airtable.com/.attachmentThumbnails/',
-                'title': '回家作業 1：抱狐狸',
-                'text': '未完成'
-            },
-            'defaultAction': {
-                'type': LINE_USERACTION_TYPES,
-                'content': {
-                    'label': '完成',
-                    'uri'/'text'/'display_text': '我完成了 抱狐狸',
-                    ('data': 'action=homework;happy=yes') -- Needed when postback
-                }
-            },
-            'actions': [{
-                'type': LINE_USERACTION_TYPES,
-                'content': {}
-            }, {...}]
-        }, {...}]
+        'replyTemplate': LINE_MESSAGE_TEMPLATES.HOMEWORK,
+        'replyContent': [{}]
     }
     '''
-    # Parse string into dict
-    replyMessage = json.loads(event['replyMessage'])
-
-    # Construct columns
-    def makeColumn(colContent):
-        return CarouselColumn(
-            **colContent['main'],
-            default_action=userAction(colContent['defaultAction']['type'])(**colContent['defaultAction']['content']),
-            actions=[userAction(action['type'])(**action['content']) for action in colContent['actions']]
-        )
-    carouselContent = CarouselTemplate(
-        columns=[makeColumn(colContent) for colContent in replyMessage]
-    )
-
     try:
         lineChannel.reply_message(
             event['lineReplyToken'],
             TemplateSendMessage(
                 alt_text='Carousel template',
-                template=carouselContent
+                template=getTemplate(event['replyTemplate'])(event['replyContent'])
             )
         )
     except LineBotApiError: raise

@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import re
+from typing import Dict, Optional
 from boto3 import client as boto3_client
 from linebot import WebhookHandler
 from linebot.exceptions import InvalidSignatureError
@@ -85,23 +86,18 @@ def cmd_nextClass(event):
         'eventType': AIR_EVENT_TYPES.NEXT_CLASS,
         'lineUserId': event.source.user_id
     })
-
-    def switchReply(data):
-        if data:  # If the res data is not null
-            return {
-                'replyMessage': LINE_MESSAGE_TEXTS.NEXT_CLASS_RECORD,
-                'replyContent': data
-            }
-        else:
-            return {
-                'replyMessage': LINE_MESSAGE_TEXTS.NEXT_CLASS_NO_RECORD
-            }
+    resData: Optional[Dict] = resPayload[0]['Data']
 
     # Reply to the message
     invokeLambda(LAMBDAS.LINE, {
         'eventType': LINE_EVENT_TYPES.REPLY,
         'lineReplyToken': event.reply_token,
-        **switchReply(resPayload[0]['Data'])
+        **({
+            'replyMessage': LINE_MESSAGE_TEXTS.NEXT_CLASS_RECORD,
+            'replyContent': resData
+        } if resData else {
+            'replyMessage': LINE_MESSAGE_TEXTS.NEXT_CLASS_NO_RECORD
+        })
     })
 
 
@@ -126,25 +122,19 @@ def cmd_homework(event):
         'eventType': AIR_EVENT_TYPES.HOMEWORK,
         'lineUserId': event.source.user_id
     })
-
-    # TODO: Move switchReply as shared func
-    def switchReply(data):
-        if data:  # If the res data is not null
-            return {
-                'eventType': LINE_EVENT_TYPES.REPLY_CAROUSEL,
-                'replyTemplate': LINE_MESSAGE_TEMPLATES.HOMEWORK,
-                'replyContent': data
-            }
-        else:
-            return {
-                'eventType': LINE_EVENT_TYPES.REPLY,
-                'replyMessage': LINE_MESSAGE_TEXTS.HOMEWORK_NO_RECORD
-            }
+    resData: Optional[Dict] = resPayload[0]['Data']
 
     # Reply to the request
     invokeLambda(LAMBDAS.LINE, {
         'lineReplyToken': event.reply_token,
-        **switchReply(resPayload[0]['Data'])
+        **({
+            'eventType': LINE_EVENT_TYPES.REPLY_CAROUSEL,
+            'replyTemplate': LINE_MESSAGE_TEMPLATES.HOMEWORK,
+            'replyContent': resData
+        } if resData else {
+            'eventType': LINE_EVENT_TYPES.REPLY,
+            'replyMessage': LINE_MESSAGE_TEXTS.HOMEWORK_NO_RECORD
+        })
     })
 
 
@@ -170,24 +160,19 @@ def cmd_classHistory(event):
         'eventType': AIR_EVENT_TYPES.CLASS_HISTORY,
         'lineUserId': event.source.user_id
     })
-
-    def switchReply(data):
-        if data:  # If air res data is not null
-            return {
-                'eventType': LINE_EVENT_TYPES.REPLY_FLEX,
-                'replyTemplate': LINE_MESSAGE_TEMPLATES.CLASS_HISTORY,
-                'replyContent': data
-            }
-        else:
-            return {
-                'eventType': LINE_EVENT_TYPES.REPLY,
-                'replyMessage': LINE_MESSAGE_TEXTS.CLASS_HISTORY_NO_RECORD
-            }
+    resData: Optional[Dict] = resPayload[0]['Data']
 
     # Reply to the request
     invokeLambda(LAMBDAS.LINE, {
         'lineReplyToken': event.reply_token,
-        **switchReply(resPayload[0]['Data'])
+        **({
+            'eventType': LINE_EVENT_TYPES.REPLY_FLEX,
+            'replyTemplate': LINE_MESSAGE_TEMPLATES.CLASS_HISTORY,
+            'replyContent': resData
+        } if resData else {
+            'eventType': LINE_EVENT_TYPES.REPLY,
+            'replyMessage': LINE_MESSAGE_TEXTS.CLASS_HISTORY_NO_RECORD
+        })
     })
 
 
@@ -214,10 +199,7 @@ def handle_message(event):
 
 # 'r' -> (Admin) Send reminder of upcoming classes
 # TODO: Deal with no one to send reminder
-# TODO: Admin group message and test
-# TODO: Admin group message by group and indi message
 # TODO: Get everyday log of all message sent to the bot: AWS CLI into csv, time, identity, message
-# TODO: Push message and some left over reply to template
 def adm_reminder(event):
     '''
     Success response =
@@ -236,11 +218,13 @@ def adm_reminder(event):
         })
         remindedInd.append(target['lineDisplayName'])
 
-    reply = 'Reminder sent to {}.'.format(', '.join(remindedInd))
     invokeLambda(LAMBDAS.LINE, {
         'eventType': LINE_EVENT_TYPES.REPLY,
         'lineReplyToken': event.reply_token,
-        'replyMessage': reply
+        'replyMessage': LINE_MESSAGE_TEXTS.REMINDER_SUCCESS,
+        'replyContent': {
+            'remindedInds': ', '.join(remindedInd)
+        }
     })
 
 

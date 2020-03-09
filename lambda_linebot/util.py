@@ -33,3 +33,4 @@ class LINE_MESSAGE_TEXTS():
     NEXT_CLASS_NO_RECORD = 'next_class_no_record'
     NEXT_CLASS_RECORD = 'next_class_record'
     FOLLOW_GREETING = 'follow_greeting'
+    REMINDER_SUCCESS = 'reminder_success'

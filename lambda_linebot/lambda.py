@@ -2,11 +2,12 @@ import os
 import sys
 import json
 import re
-from datetime import datetime
 from boto3 import client as boto3_client
 from linebot import WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import FollowEvent, MessageEvent, TextMessage, PostbackEvent
+from util import AIR_EVENT_TYPES, LINE_EVENT_TYPES, LAMBDAS
+from util import LINE_MESSAGE_TEMPLATES, LINE_MESSAGE_TEXTS
 # https://github.com/line/line-bot-sdk-python
 # https://developers.line.biz/en/reference/messaging-api/
 
@@ -26,36 +27,6 @@ if channel_secret is None:
 
 # Line webhook
 line_handler = WebhookHandler(channel_secret)
-
-
-# Enum classes
-class AIR_EVENT_TYPES():
-    FOLLOW = 'follow'
-    REMINDER = 'reminder'
-    NEXT_CLASS = 'next_class'
-    HOMEWORK = 'homework'
-    FINISH_HOMEWORK = 'finish_homework'
-    CLASS_HISTORY = 'class_history'
-    CLASS_RECORD = 'class_record'
-    EMPTY = 'empty'
-
-
-class LINE_EVENT_TYPES():
-    PUSH = 'push'
-    REPLY = 'reply'
-    REPLY_CAROUSEL = 'reply_carousel'
-    REPLY_FLEX = 'reply_flex'
-    GET_PROFILE = 'get_profile'
-
-
-class LINE_MESSAGE_TEMPLATES():
-    HOMEWORK = 'homework'
-    CLASS_HISTORY = 'class_history'
-
-
-class LAMBDAS():
-    AIRTABLE = 'Airtable'
-    LINE = 'Line'
 
 
 # Trigger other lambdas (lambda_line, lambda_airtable)
@@ -107,7 +78,7 @@ def handle_postback(event):
 def cmd_nextClass(event):
     '''
     Success response =
-    [{'Status': 'handle_nextClass: OK', 'Data': {'memberIid': 'recMgb6f5sfuhVWAs', 'classId': '1900322', 'classTime': '2019-11-14T09:00:00+08:00', 'classLocation': 'home', 'classTrainer': 'CY'}}]
+    [{'Status': 'handle_nextClass: OK', 'Data': {'memberIid': 'recMgb6f5sfuhVWAs', 'classId': '1900322', 'classTime': '1114 09:00', 'classLocation': 'home', 'classTrainer': 'CY'}}]
     '''
     # Get next class info
     resPayload = invokeLambda(LAMBDAS.AIRTABLE, {
@@ -115,21 +86,22 @@ def cmd_nextClass(event):
         'lineUserId': event.source.user_id
     })
 
-    def genReply(data):
+    def switchReply(data):
         if data:  # If the res data is not null
-            return 'Your next class is {} at {}. Your trainer is {} 😉.'.format(
-                datetime.fromisoformat(data['classTime']).strftime('%m/%d %H:%M'),
-                data['classLocation'],
-                data['classTrainer']
-            )
+            return {
+                'replyMessage': LINE_MESSAGE_TEXTS.NEXT_CLASS_RECORD,
+                'replyContent': data
+            }
         else:
-            return 'We don\'t have record of your next class 😢.'
+            return {
+                'replyMessage': LINE_MESSAGE_TEXTS.NEXT_CLASS_NO_RECORD
+            }
 
     # Reply to the message
     invokeLambda(LAMBDAS.LINE, {
         'eventType': LINE_EVENT_TYPES.REPLY,
         'lineReplyToken': event.reply_token,
-        'replyMessage': genReply(resPayload[0]['Data'])
+        **switchReply(resPayload[0]['Data'])
     })
 
 
@@ -163,10 +135,10 @@ def cmd_homework(event):
                 'replyTemplate': LINE_MESSAGE_TEMPLATES.HOMEWORK,
                 'replyContent': data
             }
-        else:  # TODO: Also move messages to line lambda
+        else:
             return {
                 'eventType': LINE_EVENT_TYPES.REPLY,
-                'replyMessage': 'We don\'t have record of your homework 😢.'
+                'replyMessage': LINE_MESSAGE_TEXTS.HOMEWORK_NO_RECORD
             }
 
     # Reply to the request
@@ -209,7 +181,7 @@ def cmd_classHistory(event):
         else:
             return {
                 'eventType': LINE_EVENT_TYPES.REPLY,
-                'replyMessage': 'We don\'t have record of your past classes 😢.'
+                'replyMessage': LINE_MESSAGE_TEXTS.CLASS_HISTORY_NO_RECORD
             }
 
     # Reply to the request
@@ -222,6 +194,7 @@ def cmd_classHistory(event):
 # -- Handle MessageEvent and TextMessage type
 @line_handler.add(MessageEvent, TextMessage)
 def handle_message(event):
+    # TODO: Better admin command model
     if event.message.text == 'r': adm_reminder(event)
 
     # TODO: Switch to log module
@@ -244,6 +217,7 @@ def handle_message(event):
 # TODO: Admin group message and test
 # TODO: Admin group message by group and indi message
 # TODO: Get everyday log of all message sent to the bot: AWS CLI into csv, time, identity, message
+# TODO: Push message and some left over reply to template
 def adm_reminder(event):
     '''
     Success response =
@@ -280,11 +254,13 @@ def handle_follow(event):
     userDisplayName = resPayload['Data']['displayName']
     userProfilePic = resPayload['Data']['pictureUrl']
 
-    reply = 'Hello, {} 😄.'.format(userDisplayName)
     invokeLambda(LAMBDAS.LINE, {
         'eventType': LINE_EVENT_TYPES.REPLY,
         'lineReplyToken': event.reply_token,
-        'replyMessage': reply
+        'replyMessage': LINE_MESSAGE_TEXTS.FOLLOW_GREETING,
+        'replyContent': {
+            'userName': userDisplayName
+        }
     })
 
     invokeLambda(LAMBDAS.AIRTABLE, {

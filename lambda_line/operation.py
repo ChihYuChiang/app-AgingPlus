@@ -1,6 +1,7 @@
 from linebot.exceptions import LineBotApiError
 from linebot.models import TextSendMessage, TemplateSendMessage, FlexSendMessage
 from template import getTemplate
+from text import messageText
 
 
 def pushMessage(lineChannel, event):
@@ -15,6 +16,7 @@ def pushMessage(lineChannel, event):
         event['lineUserId'],
         TextSendMessage(text=event['pushMessage'])
     )
+    # TODO: Add logging
 
 
 # TODO: Combine reply functions
@@ -23,14 +25,18 @@ def replyMessage(lineChannel, event):
     event {
         'eventType': LINE_EVENT_TYPES.REPLY,
         'lineReplyToken': event.reply_token,
-        'replyMessage': str
+        'replyMessage': LINE_MESSAGE_TEXTS
+        'replyContent': {}
     }
     '''
+    message = messageText(event['replyMessage'], event.get('replyContent', {}))
+    print('Replying message: {}'.format(message))
+
     # Reply token can be used only once -> The default reply will not take place (and a LineBotApiError will be raised) if the reply has been made in cmd process
     try:
         lineChannel.reply_message(
             event['lineReplyToken'],
-            TextSendMessage(text=event['replyMessage'])
+            TextSendMessage(text=message)
         )
     except LineBotApiError: raise
 

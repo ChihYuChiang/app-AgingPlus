@@ -36,7 +36,6 @@ async function handle_follow(event) {
     }]
   };
 
-  // TODO: handle reject error
   await create(params);
   return { Status: 'handle_follow: OK' };
 }
@@ -93,7 +92,7 @@ async function handle_nextClass(event) {
   // Post processing
   if (has(nextClass, 'memberIid') && nextClass.classTime.isAfter(moment().subtract(0.5, 'hours'))) {
     // Return time in local format
-    nextClass.classTime = nextClass.classTime.tz('Asia/Taipei').format();
+    nextClass.classTime = nextClass.classTime.tz('Asia/Taipei').format('MMDD HH:mm');
 
     // Get trainer info
     const params_2 = {
@@ -261,7 +260,6 @@ async function handle_classHistory(event) {
 
 
 // -- Main handler
-// TODO: remove the awkward list results
 function handlerBuilder(...funcs) {
   return async (event, context) => {
     // Concurrent fire all handlers; make it sequential when needed

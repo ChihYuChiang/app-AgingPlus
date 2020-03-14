@@ -19,7 +19,6 @@ def pushMessage(lineChannel, event):
     # TODO: Add logging
 
 
-# TODO: Combine reply functions
 def replyMessage(lineChannel, event):
     '''
     event {

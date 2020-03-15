@@ -4,7 +4,7 @@ let cloudwatchLogsInstance = new AWS.CloudWatchLogs({ region: __region });
 let s3Instance = new AWS.S3({ region: __region });
 const s3BucketName = 'AgingPlusLog';
 const logFolderName = '';
-
+const targetLogGroup = ['LineBot']  // Preserve only LineBot logs
 
 // TODO: Move to util
 async function isS3BucketExists(bucketName) {

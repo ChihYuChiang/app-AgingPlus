@@ -1,5 +1,5 @@
 # Path contains build folder and source files
-$path = "C:\Users\chihy\OneDrive\Ongoing - OneDrive\app-AgingPlus\lambda_log\"
+$path = $PSScriptRoot
 
 
 # Move content to build folder and install prod dependency

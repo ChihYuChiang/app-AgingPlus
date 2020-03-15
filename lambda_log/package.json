@@ -1,0 +1,9 @@
+{
+  "name": "AgingPlus-Lambda_Log",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {},
+  "devDependencies": {
+    "eslint": "^6.8.0"
+  }
+}

@@ -2,28 +2,41 @@ const { sleepPromise } = require('./util');
 
 
 exports.retrieve = function(params) {
+  /*
+  Params = {
+    base, sheet, processRecord, filterRecord,
+    view, cellFormat, maxRecords, fields, sort, filterRecordByFormula
+  }
+  Parameters other than `base` and `sheet` are optional
+  */
   let { base, sheet, processRecord, filterRecord } = params;
+
+  function constructAirParams({
+    view='Grid view', cellFormat="json",
+    maxRecords, fields, sort, filterRecordByFormula
+  }) {
+    return {
+      view, maxRecords, fields, sort, cellFormat,
+      filterByFormula: filterRecordByFormula,
+    };
+  }
+  const airParams = constructAirParams(params);
 
   return new Promise((resolve, reject) => {
     let table = [];
     base(sheet)
-      .select({
-        view: "Grid view",
-        cellFormat: "json"
-      })
-      .eachPage(
+      .select(airParams)
+      .eachPage(  // Record per page = 100
         async function page(records, fetchNextPage) {
-          //This function (`page`) will get called for each page of records.
+          // This function (`page`) will get called for each page of records.
+          
+          // Make the records into a proper format
+          records.forEach((record) => table.push(processRecord(record)));
     
-          records.forEach((record) => {
-            const entry = processRecord(record);
-            table.push(entry);
-          });
-    
-          //To fetch the next page of records, call `fetchNextPage`.
-          //If there are more records, `page` will get called again.
-          //If there are no more records, `done` will get called.
-          await sleepPromise(300);
+          // To fetch the next page of records, call `fetchNextPage`.
+          // If there are more records, `page` will get called again.
+          // If there are no more records, `done` will get called.
+          await sleepPromise(200);
           fetchNextPage();
         },
         function done(err) {
@@ -32,7 +45,9 @@ exports.retrieve = function(params) {
             reject();
           }
           
-          const targetEntries = table.filter(filterRecord);
+          // Additional filter by js
+          const targetEntries = filterRecord ? table.filter(filterRecord) : table;
+
           console.log('Retrieved', targetEntries.length, 'records.');
           resolve(targetEntries);
         }
@@ -40,9 +55,14 @@ exports.retrieve = function(params) {
   });
 };
 
+
 exports.retrieveReduce = async function(params) {
   /*
-  Params = { base, sheet, processRecord, filterRecord, reduceRecord, reduceDefault }
+  Params = {
+    base, sheet, processRecord, filterRecord, reduceRecord, reduceDefault,
+    view, cellFormat, maxRecords, fields, sort, filterRecordByFormula
+  }
+  Parameters other than `base` and `sheet` are optional
   */
   const { reduceRecord, reduceDefault } = params;
 
@@ -52,6 +72,7 @@ exports.retrieveReduce = async function(params) {
   console.log('Reduced records.')
   return reducedOutput
 };
+
 
 exports.create = function(params) {
   /*
@@ -79,6 +100,7 @@ exports.create = function(params) {
   });
 };
 
+
 exports.find = function(params) {
   /*
   Find by record Iid, which is the internal record ID and is hidden from the Airtable frontend.
@@ -96,6 +118,7 @@ exports.find = function(params) {
     });
   });
 };
+
 
 exports.update = function(params) {
   /*
@@ -122,4 +145,4 @@ exports.update = function(params) {
       resolve();
     });
   });
-}
+};

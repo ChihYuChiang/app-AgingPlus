@@ -15,6 +15,7 @@ const AIR_EVENT_TYPES = {
   HOMEWORK: 'homework',
   FINISH_HOMEWORK: 'finish_homework',
   CLASS_HISTORY: 'class_history',
+  CLASS_RECORD: 'class_record',
   EMPTY: 'empty'
 };
 
@@ -259,6 +260,48 @@ async function handle_classHistory(event) {
 }
 
 
+async function handle_classRecord(event) {
+  if(event.eventType !== AIR_EVENT_TYPES.CLASS_RECORD) { return; }
+  
+  // Use class iid get target class records
+  const params_1 = {
+    base: base,
+    sheet: '課程記錄',
+    filterRecordByFormula: "NOT({課程} = '')",
+    processRecord: (record) => ({
+      "classIid": record.fields.課程[0],
+      "baseMoveIid": record.fields.基本菜單[0],
+      "performanceRec": record.fields.實做記錄,
+      "image": record.fields.課程記錄_圖片 && record.fields.課程記錄_圖片[0].thumbnails.large.url,
+      "video": record.fields.課程記錄_影片 && record.fields.課程記錄_影片[0],
+    }),
+    filterRecord: (record) => record.classIid === event.classIid
+  };
+  const rawRecords = await retrieve(params_1);
+
+  // Post processing
+  let classRecords_promises = rawRecords.map(async (record) => {
+    // Get baseMove info
+    const params_2 = {
+      base: base,
+      sheet: '基本菜單',
+      recordId: record.baseMoveIid
+    };
+    record.baseMove = (await find(params_2)).fields.名稱;
+
+    // Removing unnecessary for saving bandwidth
+    delete record.classIid;
+    delete record.baseMoveIid;
+
+    return record;
+  });
+  let classRecords = filterUndefined(await Promise.all(classRecords_promises));
+
+  console.log(classRecords);
+  return { Status: 'handle_classRecord: OK', Data: classRecords };
+}
+
+
 // -- Main handler
 function handlerBuilder(...funcs) {
   return async (event, context) => {
@@ -278,5 +321,6 @@ exports.handler = handlerBuilder(
   handle_nextClass,
   handle_homework,
   handle_finishHomework,
-  handle_classHistory
+  handle_classHistory,
+  handle_classRecord
 );

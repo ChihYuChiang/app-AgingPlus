@@ -70,6 +70,7 @@ def handle_postback(event):
         AIR_EVENT_TYPES.NEXT_CLASS: cmd_nextClass,
         AIR_EVENT_TYPES.HOMEWORK: cmd_homework,
         AIR_EVENT_TYPES.CLASS_HISTORY: cmd_classHistory,
+        AIR_EVENT_TYPES.CLASS_RECORD: btn_classRecord,
         AIR_EVENT_TYPES.FINISH_HOMEWORK: btn_finishHomework
     }
     handlerMapping[eventAction](event)
@@ -172,6 +173,35 @@ def cmd_classHistory(event):
         } if resData else {
             'eventType': LINE_EVENT_TYPES.REPLY,
             'replyMessage': LINE_MESSAGE_TEXTS.CLASS_HISTORY_NO_RECORD
+        })
+    })
+
+
+# (User) Get class detail records
+def btn_classRecord(event):
+    '''
+    Success response =
+    [{'Status': 'handle_classRecord: OK', 'Data': [{
+
+    }]}]
+    '''
+    # Get class record
+    resPayload = invokeLambda(LAMBDAS.AIRTABLE, {
+        'eventType': AIR_EVENT_TYPES.CLASS_RECORD,
+        'classIid': re.search('classIid=(.+?)(;|$)', event.postback.data)[1]
+    })
+    resData: Optional[Dict] = resPayload[0]['Data']
+
+    # Reply to the request
+    invokeLambda(LAMBDAS.LINE, {
+        'lineReplyToken': event.reply_token,
+        **({
+            'eventType': LINE_EVENT_TYPES.REPLY_FLEX,
+            'replyTemplate': LINE_MESSAGE_TEMPLATES.CLASS_RECORD,
+            'replyContent': resData
+        } if resData else {
+            'eventType': LINE_EVENT_TYPES.REPLY,
+            'replyMessage': LINE_MESSAGE_TEXTS.CLASS_RECORD_NO_RECORD
         })
     })
 

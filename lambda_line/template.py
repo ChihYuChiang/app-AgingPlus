@@ -22,6 +22,7 @@ def userAction(userActionType):
 class LINE_MESSAGE_TEMPLATES():
     HOMEWORK = 'homework'
     CLASS_HISTORY = 'class_history'
+    CLASS_RECORD = 'class_record'
 
 
 def carousel_homework(content: List[Dict]) -> Dict:
@@ -133,8 +134,108 @@ def flex_classHistory(content: List[Dict]) -> Dict:
     }
 
 
+def flex_classRecord(content: List[Dict]) -> Dict:
+    '''
+    Flex with carousel format.
+    content [{
+
+    }, {...}]
+    '''
+    def genItem(i, itemContent):
+        return {
+            "type": "bubble",
+            "size": "micro",
+            "body": {
+                "type": "box",
+                "layout": "vertical",
+                "contents": [
+                    {
+                        "type": "image",
+                        "url": "https://scdn.line-apps.com/n/channel_devcenter/img/flexsnapshot/clip/clip1.jpg",
+                        "size": "full",
+                        "aspectMode": "cover",
+                        "aspectRatio": "2:3",
+                        "gravity": "top"
+                    },
+                    {
+                        "type": "box",
+                        "layout": "vertical",
+                        "contents": [{
+                            "type": "box",
+                            "layout": "vertical",
+                            "contents": [{
+                                "type": "text",
+                                "text": "死蟲 Dead Worm",
+                                "size": "lg",
+                                "color": "#ffffff",
+                                "weight": "bold"
+                            }]
+                        }, {
+                            "type": "box",
+                            "layout": "vertical",
+                            "contents": [{
+                                "type": "text",
+                                "text": "10 組",
+                                "color": "#ebebeb",
+                                "size": "sm",
+                                "flex": 0
+                            }, {
+                                "type": "text",
+                                "text": "This is some word to be told to the client",
+                                "color": "#ffffffcc",
+                                "flex": 0,
+                                "size": "sm",
+                                "wrap": True
+                            }],
+                            "spacing": "lg"
+                        }],
+                        "position": "absolute",
+                        "offsetBottom": "0px",
+                        "offsetStart": "0px",
+                        "offsetEnd": "0px",
+                        "backgroundColor": "#03303Acc",
+                        "paddingAll": "20px",
+                        "paddingTop": "18px",
+                        "height": "150px"
+                    },
+                    {
+                        "type": "box",
+                        "layout": "vertical",
+                        "contents": [{
+                            "type": "text",
+                            "text": "10",
+                            "color": "#ffffff",
+                            "align": "center",
+                            "size": "xs",
+                            "offsetTop": "5px"
+                        }],
+                        "position": "absolute",
+                        "cornerRadius": "20px",
+                        "offsetTop": "18px",
+                        "backgroundColor": "#ff334b",
+                        "offsetStart": "18px",
+                        "height": "30px",
+                        "width": "30px"
+                    }
+                ],
+                "paddingAll": "0px"
+            },
+            "action": {
+                "type": LINE_USERACTION_TYPES.URI,
+                "label": "影片",
+                "uri": itemContent['video'],
+            }
+        }
+
+    return {
+        "type": "carousel",
+        "contents": [genItem(i, itemContent) for i, itemContent in enumerate(content, 1)]
+    }
+
+
 def getTemplate(template):
     return {
         LINE_MESSAGE_TEMPLATES.CLASS_HISTORY: flex_classHistory,
+        LINE_MESSAGE_TEMPLATES.CLASS_RECORD: flex_classRecord,
         LINE_MESSAGE_TEMPLATES.HOMEWORK: carousel_homework
     }[template]

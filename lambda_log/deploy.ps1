@@ -1,5 +1,5 @@
 # Path contains build folder and source files
-$path = $PSScriptRoot
+$path = $PSScriptRoot + '\'
 
 
 # Move content to build folder and install prod dependency

@@ -32,6 +32,7 @@ line_handler = WebhookHandler(channel_secret)
 
 # Trigger other lambdas (lambda_line, lambda_airtable)
 def invokeLambda(lambdaName, payload):
+    print('Invoke lambda: {}'.format(lambdaName))
     res = lambda_client.invoke(
         FunctionName=lambdaName,
         InvocationType='RequestResponse',
@@ -65,6 +66,8 @@ def lambda_handler(requestEvent, context):
 @line_handler.add(PostbackEvent)
 def handle_postback(event):
     eventAction = re.search('action=(.+?)(;|$)', event.postback.data)[1]
+    print('Handle postback event: {}.'.format(eventAction))
+
     handlerMapping = {
         AIR_EVENT_TYPES.EMPTY: lambda x: None,
         AIR_EVENT_TYPES.NEXT_CLASS: cmd_nextClass,
@@ -87,7 +90,7 @@ def cmd_nextClass(event):
         'eventType': AIR_EVENT_TYPES.NEXT_CLASS,
         'lineUserId': event.source.user_id
     })
-    resData: Optional[Dict] = resPayload[0]['Data']
+    resData: Optional[Dict] = resPayload and resPayload[0]['Data']
 
     # Reply to the message
     invokeLambda(LAMBDAS.LINE, {
@@ -123,7 +126,7 @@ def cmd_homework(event):
         'eventType': AIR_EVENT_TYPES.HOMEWORK,
         'lineUserId': event.source.user_id
     })
-    resData: Optional[Dict] = resPayload[0]['Data']
+    resData: Optional[Dict] = resPayload and resPayload[0]['Data']
 
     # Reply to the request
     invokeLambda(LAMBDAS.LINE, {
@@ -161,7 +164,7 @@ def cmd_classHistory(event):
         'eventType': AIR_EVENT_TYPES.CLASS_HISTORY,
         'lineUserId': event.source.user_id
     })
-    resData: Optional[Dict] = resPayload[0]['Data']
+    resData: Optional[Dict] = resPayload and resPayload[0]['Data']
 
     # Reply to the request
     invokeLambda(LAMBDAS.LINE, {
@@ -181,16 +184,16 @@ def cmd_classHistory(event):
 def btn_classRecord(event):
     '''
     Success response =
-    [{'Status': 'handle_classRecord: OK', 'Data': [{
-
-    }]}]
+    [{'Status': 'handle_classRecord: OK', 'Data': [{'baseMove': '橋式 Bridge'}, {'baseMove': '死蟲 Dead Bug'}, {'performanceRec': '四足跪姿；膝支撐平板夾背', 'image': 'https://dl.airtable.com/.attachmentThumbnails/2e4132d7206ae8edddc79c6fd9525e78/62d6d3c6', 'video': 'http://youtube.com', 'baseMove': '滾筒按摩'}]
+    }]
     '''
     # Get class record
     resPayload = invokeLambda(LAMBDAS.AIRTABLE, {
         'eventType': AIR_EVENT_TYPES.CLASS_RECORD,
         'classIid': re.search('classIid=(.+?)(;|$)', event.postback.data)[1]
     })
-    resData: Optional[Dict] = resPayload[0]['Data']
+    resData: Optional[Dict] = resPayload and resPayload[0]['Data']
+    print(resData)
 
     # Reply to the request
     invokeLambda(LAMBDAS.LINE, {
@@ -240,7 +243,7 @@ def adm_reminder(event):
     })
 
     remindedInd = []
-    for target in resPayload[0]['Data']:
+    for target in (resPayload and resPayload[0]['Data']):
         invokeLambda(LAMBDAS.LINE, {
             'eventType': LINE_EVENT_TYPES.PUSH,
             'lineUserId': target['lineUserId'],
@@ -261,6 +264,7 @@ def adm_reminder(event):
 # -- Handle FollowEvent (when someone adds this account as friend)
 @line_handler.add(FollowEvent)
 def handle_follow(event):
+    print('Handle follow event: {}.'.format(event.source.user_id))
     resPayload = invokeLambda(LAMBDAS.LINE, {
         'eventType': LINE_EVENT_TYPES.GET_PROFILE,
         'lineUserId': event.source.user_id

@@ -18,7 +18,7 @@ def messageText(id, content: Dict):
     textFrame = {
         M.HOMEWORK_NO_RECORD: 'We don\'t have record of your homework 😢.',
         M.CLASS_HISTORY_NO_RECORD: 'We don\'t have record of your past classes 😢.',
-        M.CLASS_RECORD_NO_RECORD: 'We don\'t have detail records of this class 😢.',
+        M.CLASS_RECORD_NO_RECORD: 'We don\'t have detail record of this class 😢.',
         M.NEXT_CLASS_NO_RECORD: 'We don\'t have record of your next class 😢.',
         M.NEXT_CLASS_RECORD: lambda x: 'Your next class is {classTime} at {classLocation}. Your trainer is {classTrainer} 😉.'.format(**x),
         M.FOLLOW_GREETING: lambda x: 'Hello, {userName} 😄.'.format(**x),

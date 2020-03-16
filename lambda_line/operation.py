@@ -12,6 +12,8 @@ def pushMessage(lineChannel, event):
         'pushMessage': target['messageContent']
     }
     '''
+    print('Pushing message: {}'.format(event['pushMessage']))
+
     lineChannel.push_message(
         event['lineUserId'],
         TextSendMessage(text=event['pushMessage'])
@@ -50,6 +52,8 @@ def replyMessage_carousel(lineChannel, event):
         'replyContent': [{}]
     }
     '''
+    print('Replying carousel: {}'.format(event['replyTemplate']))
+
     try:
         lineChannel.reply_message(
             event['lineReplyToken'],
@@ -66,6 +70,9 @@ def replyMessage_flex(lineChannel, event):
     Flex Message Simulator -> get json -> make dict -> use as content
     https://developers.line.biz/console/fx/
     '''
+    print('Replying flex: {}'.format(event['replyTemplate']))
+
+    print(getTemplate(event['replyTemplate'])(event['replyContent']))
     try:
         lineChannel.reply_message(
             event['lineReplyToken'],
@@ -84,6 +91,7 @@ def getProfile(lineChannel, event):
         'lineUserId': event.source.user_id
     }
     '''
+    print('Getting profile: {}'.format(event['lineUserId']))
     profileObj = lineChannel.get_profile(event['lineUserId'])
 
     return {

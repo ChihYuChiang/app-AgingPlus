@@ -269,11 +269,11 @@ async function handle_classRecord(event) {
     sheet: '課程記錄',
     filterRecordByFormula: "NOT({課程} = '')",
     processRecord: (record) => ({
-      "classIid": record.fields.課程[0],
-      "baseMoveIid": record.fields.基本菜單[0],
+      "classIid": record.fields.課程 && record.fields.課程[0],
+      "baseMoveIid": record.fields.基本菜單 && record.fields.基本菜單[0],
       "performanceRec": record.fields.實做記錄,
-      "image": record.fields.課程記錄_圖片 && record.fields.課程記錄_圖片[0].thumbnails.large.url,
-      "video": record.fields.課程記錄_影片 && record.fields.課程記錄_影片[0],
+      "image": record.fields.圖片 && record.fields.圖片[0].thumbnails.large.url,
+      "video": record.fields.影片,
     }),
     filterRecord: (record) => record.classIid === event.classIid
   };

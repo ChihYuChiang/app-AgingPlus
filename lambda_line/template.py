@@ -5,7 +5,7 @@ from linebot.models import CarouselTemplate, CarouselColumn
 
 # -- User action
 class LINE_USERACTION_TYPES():
-    POSTBACK = 'post_back'
+    POSTBACK = 'postback'
     MESSAGE = 'message'
     URI = 'uri'
 
@@ -134,12 +134,12 @@ def flex_classHistory(content: List[Dict]) -> Dict:
     }
 
 
+# TODO: Use default dict to avoid [0] index error
 def flex_classRecord(content: List[Dict]) -> Dict:
     '''
     Flex with carousel format.
-    content [{
-
-    }, {...}]
+    content [{'performanceRec': '四足跪姿；膝支撐平板夾背', 'image': 'https://dl.airtable.com/.attachmentThumbnails/2e4132d7206ae8edddc79c6fd9525e78/62d6d3c6', 'video': 'https://youtube.com', 'baseMove': '滾筒按摩'}]
+    }], {...}]
     '''
     def genItem(i, itemContent):
         return {
@@ -151,7 +151,7 @@ def flex_classRecord(content: List[Dict]) -> Dict:
                 "contents": [
                     {
                         "type": "image",
-                        "url": "https://scdn.line-apps.com/n/channel_devcenter/img/flexsnapshot/clip/clip1.jpg",
+                        "url": itemContent.get('image', "https://scdn.line-apps.com/n/channel_devcenter/img/flexsnapshot/clip/clip1.jpg"),
                         "size": "full",
                         "aspectMode": "cover",
                         "aspectRatio": "2:3",
@@ -165,7 +165,7 @@ def flex_classRecord(content: List[Dict]) -> Dict:
                             "layout": "vertical",
                             "contents": [{
                                 "type": "text",
-                                "text": "死蟲 Dead Worm",
+                                "text": itemContent['baseMove'],
                                 "size": "lg",
                                 "color": "#ffffff",
                                 "weight": "bold"
@@ -175,13 +175,13 @@ def flex_classRecord(content: List[Dict]) -> Dict:
                             "layout": "vertical",
                             "contents": [{
                                 "type": "text",
-                                "text": "10 組",
+                                "text": "3 組",
                                 "color": "#ebebeb",
                                 "size": "sm",
                                 "flex": 0
                             }, {
                                 "type": "text",
-                                "text": "This is some word to be told to the client",
+                                "text": itemContent.get('performanceRec', '做得很好'),
                                 "color": "#ffffffcc",
                                 "flex": 0,
                                 "size": "sm",
@@ -203,7 +203,7 @@ def flex_classRecord(content: List[Dict]) -> Dict:
                         "layout": "vertical",
                         "contents": [{
                             "type": "text",
-                            "text": "10",
+                            "text": str(i),
                             "color": "#ffffff",
                             "align": "center",
                             "size": "xs",
@@ -223,7 +223,7 @@ def flex_classRecord(content: List[Dict]) -> Dict:
             "action": {
                 "type": LINE_USERACTION_TYPES.URI,
                 "label": "影片",
-                "uri": itemContent['video'],
+                "uri": itemContent.get('video', 'https://www.youtube.com'),
             }
         }
 

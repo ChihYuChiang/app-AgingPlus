@@ -1,4 +1,4 @@
-const { sleepPromise } = require('./util');
+const { sleepPromise, filterUndefined } = require('./util');
 
 
 exports.retrieve = function(params) {
@@ -15,10 +15,10 @@ exports.retrieve = function(params) {
     view='Grid view', cellFormat="json",
     maxRecords, fields, sort, filterRecordByFormula
   }) {
-    return {
+    return filterUndefined({
       view, maxRecords, fields, sort, cellFormat,
       filterByFormula: filterRecordByFormula,
-    };
+    });
   }
   const airParams = constructAirParams(params);
 

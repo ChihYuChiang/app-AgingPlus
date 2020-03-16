@@ -18,7 +18,6 @@ def pushMessage(lineChannel, event):
         event['lineUserId'],
         TextSendMessage(text=event['pushMessage'])
     )
-    # TODO: Add logging
 
 
 def replyMessage(lineChannel, event):

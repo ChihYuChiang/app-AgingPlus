@@ -1,3 +1,4 @@
+from collections import ChainMap
 from typing import List, Dict
 from linebot.models import PostbackAction, MessageAction, URIAction
 from linebot.models import CarouselTemplate, CarouselColumn
@@ -26,35 +27,35 @@ class LINE_MESSAGE_TEMPLATES():
 
 
 def carousel_homework(content: List[Dict]) -> Dict:
-    '''
-    content [{
-        hwIid: 'rec123456',
-        hwDate: '2020-03-01',
-        noOfSet: 3,
-        personalTip: '越像蟲越好',
-        image: 'https://dl.airtable.com/.attachmentThumbnails/2e4132d7206ae8edddc79c6fd9525e78/62d6d3c6',
-        video: 'https://www.youtube.com/watch?v=t_qk5ZhRHIs',
-        isFinished: false,
-        member: 'Bingo',
-        baseMove: '滾筒按摩'
-    }, {...}]
-    '''
+    default = {  # `None` marks the attribute as required
+        'hwIid': None,
+        'member': None,
+        'noOfSet': 3,
+        'personalTip': '',
+        # TODO: Provide default image and video
+        'image': 'https://scdn.line-apps.com/n/channel_devcenter/img/flexsnapshot/clip/clip1.jpg',
+        'video': 'https://www.youtube.com',
+        'isFinished': False,
+        'baseMove': '基本動作'
+    }
+
     def genItem(i, itemContent):
+        itemContentWD = ChainMap(itemContent, default)
         colContent = {
-            'thumbnail_image_url': itemContent['image'],
-            'title': '回家作業 {}：{}'.format(i, itemContent['baseMove']),
-            'text': '{} 組'.format(itemContent['noOfSet']),
+            'thumbnail_image_url': itemContentWD['image'],
+            'title': '回家作業 {}：{}'.format(i, itemContentWD['baseMove']),
+            'text': '{} 組'.format(itemContentWD['noOfSet']),
             'default_action': userAction(LINE_USERACTION_TYPES.URI)(
                 label='影片',
-                uri=itemContent['video']
+                uri=itemContentWD['video']
             ),
             'actions': [userAction(LINE_USERACTION_TYPES.POSTBACK)(
                 label='已完成 ❤️',
                 data='action=empty'
-            )] if itemContent['isFinished'] else [userAction(LINE_USERACTION_TYPES.POSTBACK)(
+            )] if itemContentWD['isFinished'] else [userAction(LINE_USERACTION_TYPES.POSTBACK)(
                 label='完成',
-                display_text='我完成了 {}'.format(itemContent['baseMove']),
-                data='action=finish_homework;hwIid={}'.format(itemContent['hwIid'])
+                display_text='我完成了 {}'.format(itemContentWD['baseMove']),
+                data='action=finish_homework;hwIid={}'.format(itemContentWD['hwIid'])
             )]
         }
         return CarouselColumn(**colContent)
@@ -65,13 +66,16 @@ def carousel_homework(content: List[Dict]) -> Dict:
 
 
 def flex_classHistory(content: List[Dict]) -> Dict:
-    '''
-    Flex with carousel format.
-    content [{
-        'classIid': 'recvQFMu2DOSqwuBm', 'classTime': '1226', 'classLocation': '學員家', 'classDate': '0900', 'classTrainer': 'James'
-    }, {...}]
-    '''
+    default = {
+        'classIid': None,
+        'classDate': None,
+        'classTime': None,
+        'classLocation': '上課場地',
+        'classTrainer': '樂齡教練',
+    }
+
     def genItem(i, itemContent):
+        itemContentWD = ChainMap(itemContent, default)
         return {
             "type": "bubble",
             "size": "nano",
@@ -80,7 +84,7 @@ def flex_classHistory(content: List[Dict]) -> Dict:
                 "layout": "vertical",
                 "contents": [{
                     "type": "text",
-                    "text": itemContent['classDate'],
+                    "text": itemContentWD['classDate'],
                     "color": "#ffffff",
                     "align": "start",
                     "size": "md",
@@ -96,19 +100,19 @@ def flex_classHistory(content: List[Dict]) -> Dict:
                 "layout": "vertical",
                 "contents": [{
                     "type": "text",
-                    "text": itemContent['classTime'],
+                    "text": itemContentWD['classTime'],
                     "size": "sm",
                     "align": "start",
                     "color": "#8C8C8C"
                 }, {
                     "type": "text",
-                    "text": itemContent.get('classLocation', '上課場地'),
+                    "text": itemContentWD['classLocation'],
                     "size": "sm",
                     "wrap": True,
                     "color": "#8C8C8C"
                 }, {
                     "type": "text",
-                    "text": itemContent.get('classTrainer', '樂齡教練'),
+                    "text": itemContentWD['classTrainer'],
                     "size": "sm",
                     "color": "#8C8C8C"
                 }],
@@ -118,8 +122,8 @@ def flex_classHistory(content: List[Dict]) -> Dict:
             "action": {
                 "type": LINE_USERACTION_TYPES.POSTBACK,
                 "label": "action",
-                "data": 'action=class_record;classIid={}'.format(itemContent['classIid']),
-                "displayText": "{} 課程內容".format(itemContent['classDate'])
+                "data": 'action=class_record;classIid={}'.format(itemContentWD['classIid']),
+                "displayText": "{} 課程內容".format(itemContentWD['classDate'])
             },
             "styles": {
                 "footer": {
@@ -134,14 +138,17 @@ def flex_classHistory(content: List[Dict]) -> Dict:
     }
 
 
-# TODO: Use default dict to avoid [0] index error
 def flex_classRecord(content: List[Dict]) -> Dict:
-    '''
-    Flex with carousel format.
-    content [{'performanceRec': '四足跪姿；膝支撐平板夾背', 'image': 'https://dl.airtable.com/.attachmentThumbnails/2e4132d7206ae8edddc79c6fd9525e78/62d6d3c6', 'video': 'https://youtube.com', 'baseMove': '滾筒按摩'}]
-    }], {...}]
-    '''
+    default = {
+        'baseMove': '基本動作',
+        'performanceRec': '做得很好',
+        # TODO: Provide default image and video
+        'image': 'https://scdn.line-apps.com/n/channel_devcenter/img/flexsnapshot/clip/clip1.jpg',
+        'video': 'https://www.youtube.com'
+    }
+
     def genItem(i, itemContent):
+        itemContentWD = ChainMap(itemContent, default)
         return {
             "type": "bubble",
             "size": "micro",
@@ -151,7 +158,7 @@ def flex_classRecord(content: List[Dict]) -> Dict:
                 "contents": [
                     {
                         "type": "image",
-                        "url": itemContent.get('image', "https://scdn.line-apps.com/n/channel_devcenter/img/flexsnapshot/clip/clip1.jpg"),
+                        "url": itemContentWD.get['image'],
                         "size": "full",
                         "aspectMode": "cover",
                         "aspectRatio": "2:3",
@@ -165,7 +172,7 @@ def flex_classRecord(content: List[Dict]) -> Dict:
                             "layout": "vertical",
                             "contents": [{
                                 "type": "text",
-                                "text": itemContent['baseMove'],
+                                "text": itemContentWD['baseMove'],
                                 "size": "lg",
                                 "color": "#ffffff",
                                 "weight": "bold"
@@ -181,7 +188,7 @@ def flex_classRecord(content: List[Dict]) -> Dict:
                                 "flex": 0
                             }, {
                                 "type": "text",
-                                "text": itemContent.get('performanceRec', '做得很好'),
+                                "text": itemContentWD.get['performanceRec'],
                                 "color": "#ffffffcc",
                                 "flex": 0,
                                 "size": "sm",
@@ -223,7 +230,7 @@ def flex_classRecord(content: List[Dict]) -> Dict:
             "action": {
                 "type": LINE_USERACTION_TYPES.URI,
                 "label": "影片",
-                "uri": itemContent.get('video', 'https://www.youtube.com'),
+                "uri": itemContentWD.get['video'],
             }
         }
 

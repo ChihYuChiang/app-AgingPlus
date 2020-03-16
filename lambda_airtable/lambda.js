@@ -66,6 +66,7 @@ async function handle_reminder(event) {
 }
 
 
+// TODO: Identify the required fields in Air
 async function handle_nextClass(event) {
   if(event.eventType !== AIR_EVENT_TYPES.NEXT_CLASS) { return; }
   const memberIid = await retrieveMemberIidByLineId(base, event.lineUserId);
@@ -160,6 +161,7 @@ async function handle_homework(event) {
     // Removing ids for saving bandwidth
     delete homework.memberIid;
     delete homework.baseMoveIid;
+    delete homework.hwDate;
 
     return homework;
   });

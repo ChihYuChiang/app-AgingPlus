@@ -111,7 +111,6 @@ def cmd_homework(event):
     Success response =
     [{'Status': 'handle_homework: OK', 'Data': [{
         hwIid: 'rec123456',
-        hwDate: '2020-03-01',
         noOfSet: 3,
         personalTip: '越像蟲越好',
         image: 'https://dl.airtable.com/.attachmentThumbnails/2e4132d7206ae8edddc79c6fd9525e78/62d6d3c6',

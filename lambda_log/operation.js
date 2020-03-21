@@ -2,14 +2,10 @@ const { sleepPromise } = require('./util');
 
 
 async function isS3BucketExists(bucketName, s3Instance) {
-  try {
-    const bucketsObject = await s3Instance.listBuckets({}).promise();
-    return bucketsObject.Buckets.find(
-      (bucket) => bucket.Name === bucketName
-    );
-  } catch (err) {
-    console.error(err);
-  }
+  const bucketsObject = await s3Instance.listBuckets({}).promise();
+  return bucketsObject.Buckets.find(
+    (bucket) => bucket.Name === bucketName
+  );
 }
 
 
@@ -36,54 +32,50 @@ async function waitForExportTaskToComplete(taskId, cloudwatchLogsInstance, waitE
 
 
 exports.createS3BucketAndPutPolicy = async function (bucketName, region, s3Instance) {
-  try {
-    const existFlag = await isS3BucketExists(bucketName);
-    
-    if (existFlag) {console.log('s3 bucket exists.');}
-    else {
-      await s3Instance.createBucket({ Bucket: bucketName }).promise();
-      console.log(`s3 bucket ${bucketName} is created.`);
+  const existFlag = await isS3BucketExists(bucketName, s3Instance);
+  
+  if (existFlag) {console.log('s3 bucket exists.');}
+  else {
+    await s3Instance.createBucket({ Bucket: bucketName }).promise();
+    console.log(`s3 bucket ${bucketName} is created.`);
 
-      await s3Instance.putBucketPolicy({
-        Bucket: bucketName,
-        Policy: "{\"Version\": \"2012-10-17\",\"Statement\": [{\"Effect\": \"Allow\",\
-              \"Principal\": {\
-                \"Service\": \"logs."+ region + ".amazonaws.com\"\
-              },\
-              \"Action\": \"s3:GetBucketAcl\",\
-              \"Resource\": \"arn:aws:s3:::"+ bucketName + "\"\
+    await s3Instance.putBucketPolicy({
+      Bucket: bucketName,
+      Policy: "{\"Version\": \"2012-10-17\",\"Statement\": [{\"Effect\": \"Allow\",\
+            \"Principal\": {\
+              \"Service\": \"logs."+ region + ".amazonaws.com\"\
             },\
-            {\
-              \"Effect\": \"Allow\",\
-              \"Principal\": {\
-                \"Service\": \"logs."+ region + ".amazonaws.com\"\
-              },\
-              \"Action\": \"s3:PutObject\",\
-              \"Resource\": \"arn:aws:s3:::"+ bucketName + "/*\",\
-              \"Condition\": {\
-                \"StringEquals\": {\
-                  \"s3:x-amz-acl\": \"bucket-owner-full-control\"\
-                }\
+            \"Action\": \"s3:GetBucketAcl\",\
+            \"Resource\": \"arn:aws:s3:::"+ bucketName + "\"\
+          },\
+          {\
+            \"Effect\": \"Allow\",\
+            \"Principal\": {\
+              \"Service\": \"logs."+ region + ".amazonaws.com\"\
+            },\
+            \"Action\": \"s3:PutObject\",\
+            \"Resource\": \"arn:aws:s3:::"+ bucketName + "/*\",\
+            \"Condition\": {\
+              \"StringEquals\": {\
+                \"s3:x-amz-acl\": \"bucket-owner-full-control\"\
               }\
             }\
-          ]\
-        }"
-      }).promise();
-      console.log('s3 bucket policy is added.');
-    }
-  } catch (err) {
-    console.error(err);
+          }\
+        ]\
+      }"
+    }).promise();
+    console.log('s3 bucket policy is added.');
   }
 };
 
 
-exports.getCloudWatchLogGroups = function(nextToken, limit, cloudwatchLogsInstance) {
+exports.getCloudWatchLogGroups = function(limit, cloudwatchLogsInstance, nextToken='') {
   /*
   https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_DescribeLogGroups.html#API_DescribeLogGroups_ResponseSyntax
   */
   const params = {
-    nextToken: nextToken,
-    limit: limit
+    limit: limit,
+    ...(nextToken ? { nextToken: nextToken } : {})
   };
   return cloudwatchLogsInstance.describeLogGroups(params).promise();
 };

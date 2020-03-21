@@ -5,10 +5,18 @@ const {
   exportToS3Task
 } = require('./operation');
 
+// For local testing
+let cred = {};
+if(process.env.STAGE !== 'PROD') {
+  const fs = require('fs');
+  const yaml = require('js-yaml');
+  cred = { ...yaml.safeLoad(fs.readFileSync('../ref/credential.yml'), 'utf8').AWS };
+}
+
 const region = 'us-east-1';
-const s3BucketName = 'AgingPlusLog';
-const cloudwatchLogsInstance = new AWS.CloudWatchLogs({ region: region });
-const s3Instance = new AWS.S3({ region: region });
+const s3BucketName = 'agingplus-log';
+const cloudwatchLogsInstance = new AWS.CloudWatchLogs({ region: region, ...cred });
+const s3Instance = new AWS.S3({ region: region, ...cred });
 const logGroupFilter = ['LineBot'];  // Preserve only LineBot logs
 
 
@@ -48,7 +56,7 @@ exports.handler = async (event) => {
     ) {return;}
     
     // Log group export can't be paralleled
-    for (let logGroup in targetLogGroups) {
+    for (let logGroup of targetLogGroups) {
       await exportToS3Task(
         s3BucketName, logGroup.logGroupName,
         `${getLogGroupPath(logGroup.logGroupName)}/${getDatePath(new Date())}`,  // Today
@@ -61,3 +69,6 @@ exports.handler = async (event) => {
     throw error;
   }
 };
+
+
+if(process.env.STAGE !== 'PROD') { exports.handler(); }

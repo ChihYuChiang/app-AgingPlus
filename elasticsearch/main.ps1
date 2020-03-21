@@ -1,23 +1,34 @@
-# Store only LineBot logs
-
-$path = Get-Location
-Write-Host $PSScriptRoot
-
-# . C:\Users\Anirban\Desktop\Tester.ps1
-# add 1 2
-
 # Set `targetDate` from parameter input with default to today (local time)
-Param ([String]$targetDateStr=$(Get-Date -Format "yyyy/MM/dd"))
-$targetDate = [datetime]::parseexact($targetDateStr, 'yyyy/MM/dd', $null)
+# Set `logGroupName` from parameter input with default to LineBot
+Param ( `
+    [String]$targetDateStr=$(Get-Date -Format "yyyy/MM/dd"), `
+    [String]$logGroupName='/aws/lambda/LineBot', `
+    [String]$source='s3' `
+)
+$targetDate = [DateTime]::parseexact($targetDateStr, 'yyyy/MM/dd', $null)
 Write-Host "Set target date to $targetDateStr."
 
-# Save log json to a tmp file
-$TempFile = New-TemporaryFile
-ConvertTo-Json $logEvents.events > $TempFile
+
+# Get log and save to temp file
+$path = $PSScriptRoot + '\'
+. $($path + 'getlog.ps1')
+
+Switch ($source) {
+    'cw' {
+        $tempFile = GetLog-CloudWatch -targetDate $targetDate -logGroupName $logGroupName
+        break
+    }
+    's3' {}
+    Default {
+        $tempFile = GetLog-s3 -targetDate $targetDate -logGroupName $logGroupName
+    }
+}
+
 
 # TODO: Pass the log events to the python parser
-python parselog.py $TempFile
+python parselog.py $tempFile
+
 
 # Clean up the tmp file
-Remove-Item -Path $TempFile
+Remove-Item -Path $tempFile
 Write-Host 'Parsed and output log file to XXX.'

@@ -1,16 +1,19 @@
 const { retrieve } = require('./operation.js');
+const { AIR_SHEETS } = require('./util');
 
 
 // Get aging member iid by Line id
 exports.retrieveMemberIidByLineId = async function(base, lineUserId) {
+  const SHEET_NAME = AIR_SHEETS.LINE_MEMBER.NAME;
+  const FIELD_NAMES = AIR_SHEETS.LINE_MEMBER.FIELD_NAMES;
   const params = {
     base: base,
-    sheet: 'LINE-MEMBER',
+    sheet: SHEET_NAME,
     processRecord: (record) => {
     return ({
-      "lineUserId": record.fields.LineUserId,
-      "lineDisplayName": record.fields.LineDisplayName,
-      "memberIid": record.fields.學員 && record.fields.學員[0]  // Get [0] if not null
+      "lineUserId": record.fields[FIELD_NAMES.LINE_USER_ID],
+      "lineDisplayName": record.fields[FIELD_NAMES.LINE_DISPLAY_NAME],
+      "memberIid": record.fields[FIELD_NAMES.MEMBER_IID] && record.fields[FIELD_NAMES.MEMBER_IID][0]  // Get [0] if not null
     })},
     filterRecord: (record) => record.lineUserId === lineUserId
   };
@@ -21,13 +24,15 @@ exports.retrieveMemberIidByLineId = async function(base, lineUserId) {
 
 // Check if is Line administrator
 exports.isLineAdmin = async function(base, lineUserId) {
+  const SHEET_NAME = AIR_SHEETS.LINE_MEMBER.NAME;
+  const FIELD_NAMES = AIR_SHEETS.LINE_MEMBER.FIELD_NAMES;
   const params = {
     base: base,
-    sheet: 'LINE-MEMBER',
+    sheet: SHEET_NAME,
     processRecord: (record) => {
     return ({
-      "lineUserId": record.fields.LineUserId,
-      "isAdmin": record.fields.管理員
+      "lineUserId": record.fields[FIELD_NAMES.LINE_USER_ID],
+      "isAdmin": record.fields[FIELD_NAMES.IS_ADMIN]
     })},
     filterRecord: (record) => record.lineUserId === lineUserId
   };

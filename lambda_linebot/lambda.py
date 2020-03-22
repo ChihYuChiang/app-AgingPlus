@@ -30,6 +30,7 @@ if channel_secret is None:
 line_handler = WebhookHandler(channel_secret)
 
 
+# TODO: apply Template pattern
 # Trigger other lambdas (lambda_line, lambda_airtable)
 def invokeLambda(lambdaName, payload):
     print('Invoke lambda: {}'.format(lambdaName))
@@ -192,7 +193,6 @@ def btn_classRecord(event):
         'classIid': re.search('classIid=(.+?)(;|$)', event.postback.data)[1]
     })
     resData: Optional[Dict] = resPayload and resPayload[0]['Data']
-    print(resData)
 
     # Reply to the request
     invokeLambda(LAMBDAS.LINE, {

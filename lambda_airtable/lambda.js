@@ -3,7 +3,7 @@ const moment = require('moment-timezone');
 const has = require('lodash/has');
 const { retrieve, retrieveReduce, create, find, update } = require('./operation.js');
 const { retrieveMemberIidByLineId, isLineAdmin } = require('./operation-sp.js');
-const { filterUndefined } = require('./util');
+const { filterUndefined, AIR_SHEETS } = require('./util');
 
 
 // -- Setup
@@ -25,14 +25,15 @@ async function handle_follow(event) {
   if(event.eventType !== AIR_EVENT_TYPES.FOLLOW) { return; }
 
   const { lineUserId, lineDisplayName, lineProfilePic } = event;
+  const FIELD_NAMES = AIR_SHEETS.LINE_MEMBER.FIELD_NAMES;
   const params = {
     base: base,
-    sheet: 'LINE-MEMBER',
+    sheet: AIR_SHEETS.LINE_MEMBER.NAME,
     entries: [{
       "fields": {
-        "LineUserId": lineUserId,
-        "LineDisplayName": lineDisplayName,
-        "LineProfilePicture": lineProfilePic
+        [FIELD_NAMES.LINE_USER_ID]: lineUserId,
+        [FIELD_NAMES.LINE_DISPLAY_NAME]: lineDisplayName,
+        [FIELD_NAMES.LINE_PROFILE_PIC]: lineProfilePic
       }
     }]
   };
@@ -47,15 +48,16 @@ async function handle_reminder(event) {
   if(event.eventType !== AIR_EVENT_TYPES.REMINDER ||
     !(await isLineAdmin(base, event.lineUserId))) { return; }
 
+  const FIELD_NAMES = AIR_SHEETS.LINE_MEMBER.FIELD_NAMES;
   const params = {
     base: base,
-    sheet: 'LINE-MEMBER',
+    sheet: AIR_SHEETS.LINE_MEMBER.NAME,
     processRecord: (record) => ({
       "iid": record.id,  // Iid, internal id used by Airtable
-      "lineUserId": record.fields.LineUserId,
-      "lineDisplayName": record.fields.LineDisplayName,
-      "messageTime": moment(record.fields.MessageTime),
-      "messageContent": record.fields.MessageContent    
+      "lineUserId": record.fields[FIELD_NAMES.LINE_USER_ID],
+      "lineDisplayName": record.fields[FIELD_NAMES.LINE_DISPLAY_NAME],
+      "messageTime": moment(record.fields[FIELD_NAMES.MSG_TIME]),
+      "messageContent": record.fields[FIELD_NAMES.MSG_CONTENT]
     }),
     // If the scheduled message time is tomorrow
     filterRecord: (record) => moment().add(1, 'days').isSame(record.messageTime, 'day')
@@ -69,18 +71,20 @@ async function handle_reminder(event) {
 // TODO: Identify the required fields in Air
 async function handle_nextClass(event) {
   if(event.eventType !== AIR_EVENT_TYPES.NEXT_CLASS) { return; }
-  const memberIid = await retrieveMemberIidByLineId(base, event.lineUserId);
 
+  const memberIid = await retrieveMemberIidByLineId(base, event.lineUserId);
+  const FIELD_NAMES = AIR_SHEETS.CLASS.FIELD_NAMES;
+  
   // Use aging member iid get next class: time > (current time - 0.5hr) && earliest
   const params_1 = {
     base: base,
-    sheet: '課程',
+    sheet: AIR_SHEETS.CLASS.NAME,
     processRecord: (record) => ({
-      "memberIid": record.fields.學員[0],
-      "classId": record.fields.編號,
-      "classTime": moment(record.fields.日期時間),
-      "classLocation": record.fields.地點,
-      "classTrainerIid": record.fields.教練1 && record.fields.教練1[0]
+      "memberIid": record.fields[FIELD_NAMES.MEMBER_IID][0],
+      "classId": record.fields[FIELD_NAMES.CLASS_ID],
+      "classTime": moment(record.field[FIELD_NAMES.CLASS_TIME]),
+      "classLocation": record.fields[FIELD_NAMES.CLASS_LOCATION],
+      "classTrainerIid": record.fields[FIELD_NAMES.CLASS_TRAINER_IID] && record.fields[FIELD_NAMES.CLASS_TRAINER_IID][0]
     }),
     filterRecord: (record) => record.memberIid === memberIid,
     reduceRecord: (acc, record) => 
@@ -99,10 +103,10 @@ async function handle_nextClass(event) {
     // Get trainer info
     const params_2 = {
       base: base,
-      sheet: '教練',
+      sheet: AIR_SHEETS.TRAINER.NAME,
       recordId: nextClass.classTrainerIid
     };
-    nextClass.classTrainer = (await find(params_2)).fields.稱呼;
+    nextClass.classTrainer = (await find(params_2)).fields[AIR_SHEETS.TRAINER.FIELD_NAMES.NICKNAME];
 
     // Removing ids for saving bandwidth
     delete nextClass.classTrainerIid;
@@ -119,21 +123,23 @@ async function handle_nextClass(event) {
 
 async function handle_homework(event) {
   if(event.eventType !== AIR_EVENT_TYPES.HOMEWORK) { return; }
+
   const memberIid = await retrieveMemberIidByLineId(base, event.lineUserId);
-  
+  const FIELD_NAMES = AIR_SHEETS.HOMEWORK.FIELD_NAMES;
+
   const params_1 = {
     base: base,
-    sheet: '回家作業',
+    sheet: AIR_SHEETS.HOMEWORK.NAME,
     processRecord: (record) => ({
       "hwIid": record.id,
-      "memberIid": record.fields.學員[0],
-      "hwDate": record.fields.日期,
-      "baseMoveIid": record.fields.課程記錄_基本菜單[0],
-      "noOfSet": record.fields.幾組,
-      "personalTip": record.fields.課程記錄_個人化提醒 && record.fields.課程記錄_個人化提醒[0],
-      "image": record.fields.課程記錄_圖片 && record.fields.課程記錄_圖片[0].thumbnails.large.url,
-      "video": record.fields.課程記錄_影片 && record.fields.課程記錄_影片[0],
-      "isFinished": record.fields.完成 ? true : false
+      "memberIid": record.fields[FIELD_NAMES.MEMBER_IID][0],
+      "hwDate": record.fields[FIELD_NAMES.HW_DATE],
+      "baseMoveIid": record.fields[FIELD_NAMES.BASE_MOVE_IID][0],
+      "noOfSet": record.fields[FIELD_NAMES.NO_OF_SET],
+      "personalTip": record.fields[FIELD_NAMES.PERSONAL_TIP] && record.fields[FIELD_NAMES.PERSONAL_TIP][0],
+      "image": record.fields[FIELD_NAMES.IMAGE] && record.fields[FIELD_NAMES.IMAGE][0].thumbnails.large.url,
+      "video": record.fields[FIELD_NAMES.VIDEO] && record.fields[FIELD_NAMES.VIDEO][0],
+      "isFinished": record.fields[FIELD_NAMES.IS_FINISHED] ? true : false
     }),
     filterRecord: (record) => (
       record.memberIid === memberIid &&
@@ -146,17 +152,17 @@ async function handle_homework(event) {
   let promises = homeworks.map(async (homework) => {
     const params_2 = {
       base: base,
-      sheet: '學員',
+      sheet: AIR_SHEETS.MEMBER.NAME,
       recordId: homework.memberIid
     };
-    homework.member = (await find(params_2)).fields.稱呼;
+    homework.member = (await find(params_2)).fields[AIR_SHEETS.MEMBER.FIELD_NAMES.NICKNAME];
 
     const params_3 = {
       base: base,
-      sheet: '基本菜單',
+      sheet: AIR_SHEETS.BASE_MOVE.NAME,
       recordId: homework.baseMoveIid
     };
-    homework.baseMove = (await find(params_3)).fields.名稱;
+    homework.baseMove = (await find(params_3)).fields[AIR_SHEETS.BASE_MOVE.FIELD_NAMES.NAME];
 
     // Removing ids for saving bandwidth
     delete homework.memberIid;
@@ -175,13 +181,14 @@ async function handle_homework(event) {
 async function handle_finishHomework(event) {
   if(event.eventType !== AIR_EVENT_TYPES.FINISH_HOMEWORK) { return; }
   
+  const FIELD_NAMES = AIR_SHEETS.HOMEWORK.FIELD_NAMES;
   const params = {
     base: base,
-    sheet: '回家作業',
+    sheet: AIR_SHEETS.HOMEWORK.NAME,
     entries: [{
       "id": event.hwIid,
       "fields": {
-        "完成": true,
+        [FIELD_NAMES.IS_FINISHED]: true,
       }
     }]
   };
@@ -193,23 +200,25 @@ async function handle_finishHomework(event) {
 
 async function handle_classHistory(event) {
   if(event.eventType !== AIR_EVENT_TYPES.CLASS_HISTORY) { return; }
+
   const memberIid = await retrieveMemberIidByLineId(base, event.lineUserId);
+  const FIELD_NAMES = AIR_SHEETS.CLASS.FIELD_NAMES;
 
   // Use aging member iid get passed classes: max 5 by time && 完成 && < now - 1hr
   const params_1 = {
     base: base,
-    sheet: '課程',
+    sheet: AIR_SHEETS.CLASS.NAME,
     processRecord: (record) => ({
-      "memberIid": record.fields.學員[0],
+      "memberIid": record.fields[FIELD_NAMES.MEMBER_IID][0],
       "classIid": record.id,
-      "classTime": moment(record.fields.日期時間),
-      "classLocation": record.fields.地點,
-      "classTrainerIid": record.fields.教練1 && record.fields.教練1[0],
-      "attendance": record.fields.出席狀態
+      "classTime": moment(record.fields[FIELD_NAMES.CLASS_TIME]),
+      "classLocation": record.fields[FIELD_NAMES.CLASS_LOCATION],
+      "classTrainerIid": record.fields[FIELD_NAMES.CLASS_TRAINER_IID] && record.fields[FIELD_NAMES.CLASS_TRAINER_IID][0],
+      "attendance": record.fields[FIELD_NAMES.ATTENDANCE]
     }),
     filterRecord: (record) =>
       record.memberIid === memberIid &&
-      record.attendance === "完成",
+      record.attendance === AIR_SHEETS.CLASS.OPTIONS.ATTENDANCE.COMPLETED,
     reduceRecord: (acc, record) => {
       if (record.classTime.isBefore(moment().subtract(1, 'hours')) &&
       record.classTime.isAfter(acc.slice(-1)[0].classTime)) {  // If more recent than the min
@@ -226,7 +235,6 @@ async function handle_classHistory(event) {
   };
   const lastFewClasses = await retrieveReduce(params_1);
 
-
   // Post processing
   let classHistory_promises = lastFewClasses.map(async (pastClass) => {
     if (has(pastClass, 'memberIid')) {
@@ -238,10 +246,10 @@ async function handle_classHistory(event) {
       // Get trainer info
       const params_2 = {
         base: base,
-        sheet: '教練',
+        sheet: AIR_SHEETS.TRAINER.NAME,
         recordId: pastClass.classTrainerIid
       };
-      pastClass.classTrainer = (await find(params_2)).fields.稱呼;
+      pastClass.classTrainer = (await find(params_2)).fields[AIR_SHEETS.TRAINER.FIELD_NAMES.NICKNAME];
   
       // Removing unnecessary for saving bandwidth
       delete pastClass.memberIid;
@@ -264,18 +272,20 @@ async function handle_classHistory(event) {
 
 async function handle_classRecord(event) {
   if(event.eventType !== AIR_EVENT_TYPES.CLASS_RECORD) { return; }
+
+  const FIELD_NAMES = AIR_SHEETS.CLASS_RECORD.FIELD_NAMES;
   
   // Use class iid get target class records
   const params_1 = {
     base: base,
-    sheet: '課程記錄',
-    filterRecordByFormula: "NOT({課程} = '')",
+    sheet: AIR_SHEETS.CLASS_RECORD.NAME,
+    filterRecordByFormula: `NOT({${FIELD_NAMES.CLASS_IID}} = '')`,
     processRecord: (record) => ({
-      "classIid": record.fields.課程 && record.fields.課程[0],
-      "baseMoveIid": record.fields.基本菜單 && record.fields.基本菜單[0],
-      "performanceRec": record.fields.實做記錄,
-      "image": record.fields.圖片 && record.fields.圖片[0].thumbnails.large.url,
-      "video": record.fields.影片,
+      "classIid": record.fields[FIELD_NAMES.CLASS_IID] && record.fields[FIELD_NAMES.CLASS_IID][0],
+      "baseMoveIid": record.fields[FIELD_NAMES.BASE_MOVE_IID] && record.fields[FIELD_NAMES.BASE_MOVE_IID][0],
+      "performanceRec": record.fields[FIELD_NAMES.PERFORMANCE_REC],
+      "image": record.fields[FIELD_NAMES.IMAGE] && record.fields[FIELD_NAMES.IMAGE][0].thumbnails.large.url,
+      "video": record.fields[FIELD_NAMES.VIDEO],
     }),
     filterRecord: (record) => record.classIid === event.classIid
   };
@@ -286,10 +296,10 @@ async function handle_classRecord(event) {
     // Get baseMove info
     const params_2 = {
       base: base,
-      sheet: '基本菜單',
+      sheet: AIR_SHEETS.BASE_MOVE.NAME,
       recordId: record.baseMoveIid
     };
-    record.baseMove = (await find(params_2)).fields.名稱;
+    record.baseMove = (await find(params_2)).fields[AIR_SHEETS.BASE_MOVE.FIELD_NAMES.NAME];
 
     // Removing unnecessary for saving bandwidth
     delete record.classIid;

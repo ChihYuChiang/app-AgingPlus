@@ -1,9 +1,10 @@
 const { retrieve } = require('./operation.js');
-const { AIR_SHEETS } = require('./util');
+const { Base, AIR_SHEETS } = require('./util');
+let base = Base.getInstance();
 
 
 // Get aging member iid by Line id
-exports.retrieveMemberIidByLineId = async function(base, lineUserId) {
+exports.retrieveMemberIidByLineId = async function(lineUserId) {
   const SHEET_NAME = AIR_SHEETS.LINE_MEMBER.NAME;
   const FIELD_NAMES = AIR_SHEETS.LINE_MEMBER.FIELD_NAMES;
   const params = {
@@ -22,8 +23,9 @@ exports.retrieveMemberIidByLineId = async function(base, lineUserId) {
   return memberIid;
 };
 
+
 // Check if is Line administrator
-exports.isLineAdmin = async function(base, lineUserId) {
+exports.isLineAdmin = async function(lineUserId) {
   const SHEET_NAME = AIR_SHEETS.LINE_MEMBER.NAME;
   const FIELD_NAMES = AIR_SHEETS.LINE_MEMBER.FIELD_NAMES;
   const params = {

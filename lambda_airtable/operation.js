@@ -1,15 +1,16 @@
-const { sleepPromise, filterUndefined } = require('./util');
+const { Base, sleepPromise, filterUndefined } = require('./util');
+let base = Base.getInstance();
 
 
 exports.retrieve = function(params) {
   /*
   Params = {
-    base, sheet, processRecord, filterRecord,
+    sheet, processRecord, filterRecord,
     view, cellFormat, maxRecords, fields, sort, filterRecordByFormula
   }
-  Parameters other than `base` and `sheet` are optional
+  Parameters other than `sheet` are optional
   */
-  let { base, sheet, processRecord, filterRecord } = params;
+  let { sheet, processRecord, filterRecord } = params;
 
   function constructAirParams({
     view='Grid view', cellFormat="json",
@@ -59,10 +60,10 @@ exports.retrieve = function(params) {
 exports.retrieveReduce = async function(params) {
   /*
   Params = {
-    base, sheet, processRecord, filterRecord, reduceRecord, reduceDefault,
+    sheet, processRecord, filterRecord, reduceRecord, reduceDefault,
     view, cellFormat, maxRecords, fields, sort, filterRecordByFormula
   }
-  Parameters other than `base` and `sheet` are optional
+  Parameters other than `sheet` are optional
   */
   const { reduceRecord, reduceDefault } = params;
 
@@ -84,7 +85,7 @@ exports.create = function(params) {
     }
   }]
   */
-  let { base, sheet, entries } = params;
+  let { sheet, entries } = params;
 
   return new Promise((resolve, reject) => {
     base(sheet).create(entries, (err, records) => {
@@ -105,7 +106,7 @@ exports.find = function(params) {
   /*
   Find by record Iid, which is the internal record ID and is hidden from the Airtable frontend.
   */
-  let { base, sheet, recordId } = params;
+  let { sheet, recordId } = params;
 
   return new Promise((resolve, reject) => {
     base(sheet).find(recordId, (err, record) => {
@@ -130,7 +131,7 @@ exports.update = function(params) {
     }
   }]
   */
-  let { base, sheet, entries } = params;
+  let { sheet, entries } = params;
 
   return new Promise((resolve, reject) => {
     console.log(entries)

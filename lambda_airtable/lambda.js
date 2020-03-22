@@ -1,4 +1,3 @@
-const Airtable = require("airtable");
 const moment = require('moment-timezone');
 const has = require('lodash/has');
 const { retrieve, retrieveReduce, create, find, update } = require('./operation.js');
@@ -7,7 +6,6 @@ const { filterUndefined, AIR_SHEETS } = require('./util');
 
 
 // -- Setup
-const base = new Airtable({ apiKey: process.env.AIRTABLE_APIKEY }).base(process.env.BASE_ID);
 const AIR_EVENT_TYPES = {
   FOLLOW: 'follow',
   REMINDER: 'reminder',
@@ -22,12 +20,11 @@ const AIR_EVENT_TYPES = {
 
 // -- Handler middlewares
 async function handle_follow(event) {
-  if(event.eventType !== AIR_EVENT_TYPES.FOLLOW) { return; }
+  if (event.eventType !== AIR_EVENT_TYPES.FOLLOW) { return; }
 
   const { lineUserId, lineDisplayName, lineProfilePic } = event;
   const FIELD_NAMES = AIR_SHEETS.LINE_MEMBER.FIELD_NAMES;
   const params = {
-    base: base,
     sheet: AIR_SHEETS.LINE_MEMBER.NAME,
     entries: [{
       "fields": {
@@ -45,12 +42,11 @@ async function handle_follow(event) {
 
 async function handle_reminder(event) {
   // Only Line admin can send reminder
-  if(event.eventType !== AIR_EVENT_TYPES.REMINDER ||
-    !(await isLineAdmin(base, event.lineUserId))) { return; }
+  if (event.eventType !== AIR_EVENT_TYPES.REMINDER ||
+    !(await isLineAdmin(event.lineUserId))) { return; }
 
   const FIELD_NAMES = AIR_SHEETS.LINE_MEMBER.FIELD_NAMES;
   const params = {
-    base: base,
     sheet: AIR_SHEETS.LINE_MEMBER.NAME,
     processRecord: (record) => ({
       "iid": record.id,  // Iid, internal id used by Airtable
@@ -70,14 +66,13 @@ async function handle_reminder(event) {
 
 // TODO: Identify the required fields in Air
 async function handle_nextClass(event) {
-  if(event.eventType !== AIR_EVENT_TYPES.NEXT_CLASS) { return; }
+  if (event.eventType !== AIR_EVENT_TYPES.NEXT_CLASS) { return; }
 
-  const memberIid = await retrieveMemberIidByLineId(base, event.lineUserId);
+  const memberIid = await retrieveMemberIidByLineId(event.lineUserId);
   const FIELD_NAMES = AIR_SHEETS.CLASS.FIELD_NAMES;
   
   // Use aging member iid get next class: time > (current time - 0.5hr) && earliest
   const params_1 = {
-    base: base,
     sheet: AIR_SHEETS.CLASS.NAME,
     processRecord: (record) => ({
       "memberIid": record.fields[FIELD_NAMES.MEMBER_IID][0],
@@ -102,7 +97,6 @@ async function handle_nextClass(event) {
 
     // Get trainer info
     const params_2 = {
-      base: base,
       sheet: AIR_SHEETS.TRAINER.NAME,
       recordId: nextClass.classTrainerIid
     };
@@ -122,13 +116,12 @@ async function handle_nextClass(event) {
 
 
 async function handle_homework(event) {
-  if(event.eventType !== AIR_EVENT_TYPES.HOMEWORK) { return; }
+  if (event.eventType !== AIR_EVENT_TYPES.HOMEWORK) { return; }
 
-  const memberIid = await retrieveMemberIidByLineId(base, event.lineUserId);
+  const memberIid = await retrieveMemberIidByLineId(event.lineUserId);
   const FIELD_NAMES = AIR_SHEETS.HOMEWORK.FIELD_NAMES;
 
   const params_1 = {
-    base: base,
     sheet: AIR_SHEETS.HOMEWORK.NAME,
     processRecord: (record) => ({
       "hwIid": record.id,
@@ -151,14 +144,12 @@ async function handle_homework(event) {
   // Replace memberIid and baseMoveIid by member and baseMove names
   let promises = homeworks.map(async (homework) => {
     const params_2 = {
-      base: base,
       sheet: AIR_SHEETS.MEMBER.NAME,
       recordId: homework.memberIid
     };
     homework.member = (await find(params_2)).fields[AIR_SHEETS.MEMBER.FIELD_NAMES.NICKNAME];
 
     const params_3 = {
-      base: base,
       sheet: AIR_SHEETS.BASE_MOVE.NAME,
       recordId: homework.baseMoveIid
     };
@@ -179,11 +170,10 @@ async function handle_homework(event) {
 
 
 async function handle_finishHomework(event) {
-  if(event.eventType !== AIR_EVENT_TYPES.FINISH_HOMEWORK) { return; }
+  if (event.eventType !== AIR_EVENT_TYPES.FINISH_HOMEWORK) { return; }
   
   const FIELD_NAMES = AIR_SHEETS.HOMEWORK.FIELD_NAMES;
   const params = {
-    base: base,
     sheet: AIR_SHEETS.HOMEWORK.NAME,
     entries: [{
       "id": event.hwIid,
@@ -199,14 +189,13 @@ async function handle_finishHomework(event) {
 
 
 async function handle_classHistory(event) {
-  if(event.eventType !== AIR_EVENT_TYPES.CLASS_HISTORY) { return; }
+  if (event.eventType !== AIR_EVENT_TYPES.CLASS_HISTORY) { return; }
 
-  const memberIid = await retrieveMemberIidByLineId(base, event.lineUserId);
+  const memberIid = await retrieveMemberIidByLineId(event.lineUserId);
   const FIELD_NAMES = AIR_SHEETS.CLASS.FIELD_NAMES;
 
   // Use aging member iid get passed classes: max 5 by time && 完成 && < now - 1hr
   const params_1 = {
-    base: base,
     sheet: AIR_SHEETS.CLASS.NAME,
     processRecord: (record) => ({
       "memberIid": record.fields[FIELD_NAMES.MEMBER_IID][0],
@@ -245,7 +234,6 @@ async function handle_classHistory(event) {
 
       // Get trainer info
       const params_2 = {
-        base: base,
         sheet: AIR_SHEETS.TRAINER.NAME,
         recordId: pastClass.classTrainerIid
       };
@@ -271,13 +259,12 @@ async function handle_classHistory(event) {
 
 
 async function handle_classRecord(event) {
-  if(event.eventType !== AIR_EVENT_TYPES.CLASS_RECORD) { return; }
+  if (event.eventType !== AIR_EVENT_TYPES.CLASS_RECORD) { return; }
 
   const FIELD_NAMES = AIR_SHEETS.CLASS_RECORD.FIELD_NAMES;
   
   // Use class iid get target class records
   const params_1 = {
-    base: base,
     sheet: AIR_SHEETS.CLASS_RECORD.NAME,
     filterRecordByFormula: `NOT({${FIELD_NAMES.CLASS_IID}} = '')`,
     processRecord: (record) => ({
@@ -295,7 +282,6 @@ async function handle_classRecord(event) {
   let classRecords_promises = rawRecords.map(async (record) => {
     // Get baseMove info
     const params_2 = {
-      base: base,
       sheet: AIR_SHEETS.BASE_MOVE.NAME,
       recordId: record.baseMoveIid
     };

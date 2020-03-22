@@ -1,3 +1,6 @@
+const Airtable = require("airtable");
+
+
 class Sheet {
   constructor(_name, _fieldNames={}, _options={}) {
     this._name = _name;
@@ -11,6 +14,21 @@ class Sheet {
   get FIELD_NAMES() {return this._fieldNames;}
   get OPTIONS() {return this._options;}
 }
+
+
+// Singleton
+exports.Base = class {
+  createInstance() {
+    this._instance = new Airtable({ apiKey: process.env.AIRTABLE_APIKEY }).base(process.env.BASE_ID);
+  }
+
+  getInstance() {
+    if (!this._instance) {
+      this._instance = this.createInstance();
+    }
+    return this._instance;
+  }
+};
 
 
 exports.AIR_SHEETS = {

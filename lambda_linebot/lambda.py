@@ -7,7 +7,7 @@ from boto3 import client as boto3_client
 from linebot import WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import FollowEvent, MessageEvent, TextMessage, PostbackEvent
-from util import AIR_EVENT_TYPES, LINE_EVENT_TYPES, LAMBDAS
+from util import EVENT_TYPES, AIR_EVENT_TYPES, LINE_EVENT_TYPES, LAMBDAS
 from util import LINE_MESSAGE_TEMPLATES, LINE_MESSAGE_TEXTS
 # https://github.com/line/line-bot-sdk-python
 # https://developers.line.biz/en/reference/messaging-api/
@@ -62,7 +62,7 @@ def lambda_handler(requestEvent, context):
     return {'statusCode': 200, 'body': 'OK'}
 
 
-# -- Handle PostbackEvent type
+# -- Handle PostbackEzvent type
 # TODO: make it middleware form
 @line_handler.add(PostbackEvent)
 def handle_postback(event):
@@ -70,12 +70,12 @@ def handle_postback(event):
     print('Handle postback event: {}.'.format(eventAction))
 
     handlerMapping = {
-        AIR_EVENT_TYPES.EMPTY: lambda x: None,
-        AIR_EVENT_TYPES.NEXT_CLASS: cmd_nextClass,
-        AIR_EVENT_TYPES.HOMEWORK: cmd_homework,
-        AIR_EVENT_TYPES.CLASS_HISTORY: cmd_classHistory,
-        AIR_EVENT_TYPES.CLASS_RECORD: btn_classRecord,
-        AIR_EVENT_TYPES.FINISH_HOMEWORK: btn_finishHomework
+        EVENT_TYPES.EMPTY: lambda x: None,
+        EVENT_TYPES.NEXT_CLASS: cmd_nextClass,
+        EVENT_TYPES.HOMEWORK: cmd_homework,
+        EVENT_TYPES.CLASS_HISTORY: cmd_classHistory,
+        EVENT_TYPES.CLASS_RECORD: btn_classRecord,
+        EVENT_TYPES.FINISH_HOMEWORK: btn_finishHomework
     }
     handlerMapping[eventAction](event)
 

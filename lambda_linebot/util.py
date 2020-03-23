@@ -1,4 +1,4 @@
-class AIR_EVENT_TYPES():
+class EVENT_TYPES():
     FOLLOW = 'follow'
     REMINDER = 'reminder'
     NEXT_CLASS = 'next_class'
@@ -7,6 +7,16 @@ class AIR_EVENT_TYPES():
     CLASS_HISTORY = 'class_history'
     CLASS_RECORD = 'class_record'
     EMPTY = 'empty'
+
+
+class AIR_EVENT_TYPES():
+    FOLLOW = 'follow'
+    REMINDER = 'reminder'
+    NEXT_CLASS = 'next_class'
+    HOMEWORK = 'homework'
+    FINISH_HOMEWORK = 'finish_homework'
+    CLASS_HISTORY = 'class_history'
+    CLASS_RECORD = 'class_record'
 
 
 class LINE_EVENT_TYPES():

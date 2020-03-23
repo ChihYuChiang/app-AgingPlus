@@ -71,7 +71,6 @@ def replyMessage_flex(lineChannel, event):
     '''
     print('Replying flex: {}'.format(event['replyTemplate']))
 
-    print(getTemplate(event['replyTemplate'])(event['replyContent']))
     try:
         lineChannel.reply_message(
             event['lineReplyToken'],

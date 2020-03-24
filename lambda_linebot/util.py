@@ -1,4 +1,25 @@
-class EVENT_TYPES():
+import json
+from Typing import Dict
+from boto3 import client as boto3_client
+
+lambda_client = boto3_client('lambda', region_name="us-east-1")
+
+
+# Trigger other lambdas (lambda_line, lambda_airtable)
+def invokeLambda(lambdaName: str, payload: Dict) -> Dict:
+    print('Invoke lambda: {}'.format(lambdaName))
+    res = lambda_client.invoke(
+        FunctionName=lambdaName,
+        InvocationType='RequestResponse',
+        Payload=json.dumps(payload)
+    )
+
+    # `resPayload` is an array with result of all activated handlers.
+    resPayload = json.loads(res['Payload'].read().decode("utf-8"))
+    return resPayload
+
+
+class POSTBACK_TYPES():
     FOLLOW = 'follow'
     REMINDER = 'reminder'
     NEXT_CLASS = 'next_class'

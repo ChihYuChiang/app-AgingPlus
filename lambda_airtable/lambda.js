@@ -5,6 +5,7 @@ const { retrieveMemberIidByLineId, isLineAdmin } = require('./operation-sp.js');
 const { filterUndefined, AIR_SHEETS } = require('./util');
 
 
+// TODO: Jest for unit test
 // -- Setup
 const AIR_EVENT_TYPES = {
   FOLLOW: 'follow',
@@ -14,7 +15,7 @@ const AIR_EVENT_TYPES = {
   FINISH_HOMEWORK: 'finish_homework',
   CLASS_HISTORY: 'class_history',
   CLASS_RECORD: 'class_record',
-  EMPTY: 'empty'
+  IS_ADMIN: 'is_admin'
 };
 
 
@@ -42,8 +43,7 @@ async function handle_follow(event) {
 
 async function handle_reminder(event) {
   // Only Line admin can send reminder
-  if (event.eventType !== AIR_EVENT_TYPES.REMINDER ||
-    !(await isLineAdmin(event.lineUserId))) { return; }
+  if (event.eventType !== AIR_EVENT_TYPES.REMINDER) { return; }
 
   const FIELD_NAMES = AIR_SHEETS.LINE_MEMBER.FIELD_NAMES;
   const params = {
@@ -300,6 +300,11 @@ async function handle_classRecord(event) {
 }
 
 
+async function handle_isAdmin(event) {
+  return await isLineAdmin(event.lineUserId);
+}
+
+
 // -- Main handler
 function handlerBuilder(...funcs) {
   return async (event, context) => {
@@ -320,5 +325,6 @@ exports.handler = handlerBuilder(
   handle_homework,
   handle_finishHomework,
   handle_classHistory,
-  handle_classRecord
+  handle_classRecord,
+  handle_isAdmin
 );

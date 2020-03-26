@@ -1,13 +1,13 @@
 import os
 import sys
-import json
 import re
+import logging
 from linebot import WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import FollowEvent, MessageEvent, TextMessage, PostbackEvent
 from handlers_postback import postbackHandlerMapping
 from handlers_adminMsg import adminMsgHandlerMapping
-from util import invokeLambda
+from util import LogMsg, Logger, invokeLambda
 from util import AIR_EVENT_TYPES, LINE_EVENT_TYPES, LAMBDAS
 from util import LINE_MESSAGE_TEXTS
 # https://github.com/line/line-bot-sdk-python
@@ -19,6 +19,9 @@ from util import LINE_MESSAGE_TEXTS
 # TODO: mypy when matured
 # TODO: pytest with testing db
 # TODO: lambda layer to share enum and others
+# Logger
+logger = Logger((logging.StreamHandler(), logging.DEBUG))
+
 # Get channel_secret from environment variable
 channel_secret = os.getenv('LINE_CHANNEL_SECRET', None)
 if channel_secret is None:
@@ -36,6 +39,9 @@ def lambda_handler(requestEvent, context):
 
     # Get request body as text
     body = requestEvent['body']
+
+    # Set logger with `lineUserId` info
+    logger.setLineUserId(body.source.user_id)
 
     # Check the body-signature match and handle the event
     try: line_handler.handle(body, signature)
@@ -59,17 +65,19 @@ def handle_postback(event):
 @line_handler.add(MessageEvent, TextMessage)
 def handle_message(event):
     # When receiving special msg, inspect admin identity, and invoke admin cmd
-    # TODO: Inspect admin identity here
     adminHandler = adminMsgHandlerMapping.get(event.message.text)
-    if adminHandler: adminHandler(event)
+    if adminHandler and invokeLambda(LAMBDAS.AIRTABLE, {
+        'eventType': AIR_EVENT_TYPES.IS_ADMIN,
+        'lineUserId': event.source.user_id
+    }): adminHandler(event)
 
     # TODO: Switch to log module
-    print(json.dumps({
-        'logType': 'MessageEvent',
-        'lineUserId': event.source.user_id,
-        'msgContent': event.message.text
-    }))
+    logger.info(LogMsg(
+        MessageEvent.__name__,
+        msgContent=event.message.text
+    ))
 
+    # TODO: Better default reply
     # Default reply replicates the incoming message
     invokeLambda(LAMBDAS.LINE, {
         'eventType': LINE_EVENT_TYPES.REPLY,

@@ -5,7 +5,6 @@ from util import LINE_MESSAGE_TEXTS
 
 # 'r' -> (Admin) Send reminder of upcoming classes
 # TODO: Deal with no one to send reminder
-# TODO: Get everyday log of all message sent to the bot: AWS CLI into csv, time, identity, message
 def adm_reminder(event):
     '''
     Success response =

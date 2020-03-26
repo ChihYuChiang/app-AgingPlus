@@ -3,7 +3,7 @@ $path = $PSScriptRoot + '\'
 
 
 # Move content to build folder
-Copy-Item $($path + 'lambda.py'), $($path + 'util.py') `
+Copy-Item $($path + '*.py') `
 	-Destination $($path + 'build')
 
 

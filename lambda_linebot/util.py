@@ -1,9 +1,10 @@
 import json
 import logging
-from Typing import Dict, Tuple, List, Any
+from Typing import Dict, Tuple, List, Any, Union, Callable
 from boto3 import client as boto3_client
 
 lambda_client = boto3_client('lambda', region_name="us-east-1")
+LAMBDA_NAME = 'lambda_linebot'
 
 
 # Trigger other lambdas (lambda_line, lambda_airtable)
@@ -25,8 +26,8 @@ def invokeLambda(lambdaName: str, payload: Dict) -> Dict:
 class LogMsg():
     # Py3.8 new syntax for positional arg
     # def __init__(self, handler: str, /, **kwargs):
-    def __init__(self, handler: str, **kwargs: Any):
-        self.msg = {'handler': handler, **kwargs}
+    def __init__(self, handler: Callable, **kwargs: Any):
+        self.msg = {'handler': handler.__name__, **kwargs}
 
     def __str__(self) -> str:
         return json.dumps(self.msg)
@@ -34,17 +35,17 @@ class LogMsg():
 
 class Logger():
     formatStr = '''{
-        "lineUserId": "unknown",
-        "time": "%(asctime)s",
-        "level": "%(levelname)s",
         "name": "%(name)s",
+        "level": "%(levelname)s",
+        "time": "%(asctime)s",
+        "lineUserId": "unknown",
         "message": %(message)s
     }'''
     logger: logging.Logger
     handlers: List[logging.Handler]
 
-    def __init__(self, *handlerConfigs: Tuple[logging.Handler, int]):
-        self.logger = logging.getLogger(__name__)
+    def __init__(self, name, *handlerConfigs: Tuple[logging.Handler, int]):
+        self.logger = logging.getLogger(name)
         for handlerConfig in handlerConfigs:
             self.addHandler(*handlerConfigs)
 
@@ -54,21 +55,32 @@ class Logger():
         self.logger.addHandler(handler)
 
     def setLineUserId(self, lineUserId: str):
+        self.formatStr = self.formatStr.replace(
+            '"lineUserId": "unknown"',
+            '"lineUserId": "{}"'.format(lineUserId), 1
+        )
         for handler in self.handlers:
             handler.setFormatter(logging.Formatter(self.formatStr))
-            lineUserId # TODO: replace unknown
 
-    def error(self, msg: LogMsg):
+    def error(self, msg: str):
         self.logger.error(msg)
 
-    def warning(self, msg: LogMsg):
+    def warning(self, msg: str):
         self.logger.warning(msg)
 
     def info(self, msg: LogMsg):
+        # Json format
         self.logger.info(msg)
 
-    def debug(self, msg: LogMsg):
+    def debug(self, msg: Union[LogMsg, str]):
         self.logger.debug(msg)
+
+
+class HANDLER_STAGE():
+    STARTING_HANDOVER = -1
+    STARTING = 0
+    IN_PROCESS = 1
+    FINISHED = 2
 
 
 class POSTBACK_TYPES():
@@ -120,3 +132,4 @@ class LINE_MESSAGE_TEXTS():
     NEXT_CLASS_RECORD = 'next_class_record'
     FOLLOW_GREETING = 'follow_greeting'
     REMINDER_SUCCESS = 'reminder_success'
+    REMINDER_NO_TARGET = 'reminder_no_target'

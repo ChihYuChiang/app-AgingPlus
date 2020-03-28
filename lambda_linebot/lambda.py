@@ -7,8 +7,8 @@ from linebot.exceptions import InvalidSignatureError
 from linebot.models import FollowEvent, MessageEvent, TextMessage, PostbackEvent
 from handlers_postback import postbackHandlerMapping
 from handlers_adminMsg import adminMsgHandlerMapping
-from util import LogMsg, Logger, invokeLambda
-from util import AIR_EVENT_TYPES, LINE_EVENT_TYPES, LAMBDAS
+from util import LogMsg, Logger, LAMBDA_NAME, HANDLER_STAGE as HS
+from util import invokeLambda, AIR_EVENT_TYPES, LINE_EVENT_TYPES, LAMBDAS
 from util import LINE_MESSAGE_TEXTS
 # https://github.com/line/line-bot-sdk-python
 # https://developers.line.biz/en/reference/messaging-api/
@@ -20,12 +20,12 @@ from util import LINE_MESSAGE_TEXTS
 # TODO: pytest with testing db
 # TODO: lambda layer to share enum and others
 # Logger
-logger = Logger((logging.StreamHandler(), logging.DEBUG))
+logger = Logger(LAMBDA_NAME, (logging.StreamHandler(), logging.DEBUG))
 
 # Get channel_secret from environment variable
 channel_secret = os.getenv('LINE_CHANNEL_SECRET', None)
 if channel_secret is None:
-    print('Specify LINE_CHANNEL_SECRET as environment variable.')
+    logger.error('Specify LINE_CHANNEL_SECRET as environment variable.')
     sys.exit(1)
 
 # Line webhook
@@ -40,13 +40,13 @@ def lambda_handler(requestEvent, context):
     # Get request body as text
     body = requestEvent['body']
 
-    # Set logger with `lineUserId` info
+    # Give logger `lineUserId` info
     logger.setLineUserId(body.source.user_id)
 
-    # Check the body-signature match and handle the event
+    # Check the body-signature matches and handle the event
     try: line_handler.handle(body, signature)
     except InvalidSignatureError:
-        print("Invalid signature. Please check your channel access token/channel secret.")
+        logger.error('Invalid signature. Please check your channel access token/channel secret.')
         raise
 
     return {'statusCode': 200, 'body': 'OK'}
@@ -56,9 +56,16 @@ def lambda_handler(requestEvent, context):
 @line_handler.add(PostbackEvent)
 def handle_postback(event):
     eventAction = re.search('action=(.+?)(;|$)', event.postback.data)[1]
+    logger.debug(LogMsg(
+        PostbackEvent,
+        stage=HS.STARTING_HANDOVER,
+        eventAction=eventAction
+    ))
 
-    print('Handle postback event: {}.'.format(eventAction))
-    postbackHandlerMapping[eventAction](event)
+    postbackHandler = postbackHandlerMapping[eventAction]
+    logger.info(LogMsg(postbackHandler, stage=HS.STARTING))
+    postbackHandler(event)
+    logger.debug(LogMsg(postbackHandler, stage=HS.FINISHED))
 
 
 # -- Handle MessageEvent and TextMessage type
@@ -69,27 +76,33 @@ def handle_message(event):
     if adminHandler and invokeLambda(LAMBDAS.AIRTABLE, {
         'eventType': AIR_EVENT_TYPES.IS_ADMIN,
         'lineUserId': event.source.user_id
-    }): adminHandler(event)
+    }):
+        logger.info(LogMsg(adminHandler, stage=HS.STARTING))
+        adminHandler(event)
+        logger.debug(LogMsg(adminHandler, stage=HS.FINISHED))
 
-    # TODO: Switch to log module
-    logger.info(LogMsg(
-        MessageEvent.__name__,
-        msgContent=event.message.text
-    ))
+    # If not admin command, respond with default
+    else:
+        logger.info(LogMsg(
+            MessageEvent,
+            stage=HS.STARTING,
+            msgContent=event.message.text
+        ))
 
-    # TODO: Better default reply
-    # Default reply replicates the incoming message
-    invokeLambda(LAMBDAS.LINE, {
-        'eventType': LINE_EVENT_TYPES.REPLY,
-        'lineReplyToken': event.reply_token,
-        'replyMessage': event.message.text
-    })
+        # TODO: Better default reply
+        # Default reply replicates the incoming message
+        invokeLambda(LAMBDAS.LINE, {
+            'eventType': LINE_EVENT_TYPES.REPLY,
+            'lineReplyToken': event.reply_token,
+            'replyMessage': event.message.text
+        })
+        logger.debug(LogMsg(MessageEvent, stage=HS.FINISHED))
 
 
 # -- Handle FollowEvent (when someone adds this account as friend)
 @line_handler.add(FollowEvent)
 def handle_follow(event):
-    print('Handle follow event: {}.'.format(event.source.user_id))
+    logger.info(LogMsg(FollowEvent, stage=HS.STARTING))
     resPayload = invokeLambda(LAMBDAS.LINE, {
         'eventType': LINE_EVENT_TYPES.GET_PROFILE,
         'lineUserId': event.source.user_id
@@ -97,6 +110,11 @@ def handle_follow(event):
     userDisplayName = resPayload['Data']['displayName']
     userProfilePic = resPayload['Data']['pictureUrl']
 
+    logger.debug(LogMsg(
+        FollowEvent,
+        stage=HS.IN_PROCESS,
+        userDisplayName=userDisplayName
+    ))
     invokeLambda(LAMBDAS.LINE, {
         'eventType': LINE_EVENT_TYPES.REPLY,
         'lineReplyToken': event.reply_token,
@@ -112,3 +130,4 @@ def handle_follow(event):
         'lineDisplayName': userDisplayName,
         'lineProfilePic': userProfilePic
     })
+    logger.debug(LogMsg(FollowEvent, stage=HS.FINISHED))

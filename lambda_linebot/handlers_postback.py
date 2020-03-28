@@ -1,7 +1,11 @@
 import re
+from util import Logger, LAMBDA_NAME
 from util import invokeLambda
 from util import POSTBACK_TYPES, AIR_EVENT_TYPES, LINE_EVENT_TYPES, LAMBDAS
 from util import LINE_MESSAGE_TEMPLATES, LINE_MESSAGE_TEXTS
+
+# Logger
+logger = Logger(LAMBDA_NAME)
 
 
 # TODO: Remove the list structure
@@ -17,6 +21,7 @@ def cmd_nextClass(event):
         'lineUserId': event.source.user_id
     })
     resData = resPayload and resPayload[0]['Data']
+    logger.debug('Next class info: {}'.format(resData))
 
     # Reply to the message
     invokeLambda(LAMBDAS.LINE, {
@@ -29,6 +34,7 @@ def cmd_nextClass(event):
             'replyMessage': LINE_MESSAGE_TEXTS.NEXT_CLASS_NO_RECORD
         })
     })
+    logger.debug('Replied with next class info.')
 
 
 # (User) Reply homework info
@@ -52,6 +58,7 @@ def cmd_homework(event):
         'lineUserId': event.source.user_id
     })
     resData = resPayload and resPayload[0]['Data']
+    logger.debug('Homework info: {}'.format(resData))
 
     # Reply to the request
     invokeLambda(LAMBDAS.LINE, {
@@ -65,6 +72,7 @@ def cmd_homework(event):
             'replyMessage': LINE_MESSAGE_TEXTS.HOMEWORK_NO_RECORD
         })
     })
+    logger.debug('Replied with homework info.')
 
 
 # (User) Update homework info
@@ -73,6 +81,7 @@ def btn_finishHomework(event):
         'eventType': AIR_EVENT_TYPES.FINISH_HOMEWORK,
         'hwIid': re.search('hwIid=(.+?)(;|$)', event.postback.data)[1]
     })
+    logger.debug('Updated homework finish status.')
 
 
 # (User) Reply class history
@@ -90,6 +99,7 @@ def cmd_classHistory(event):
         'lineUserId': event.source.user_id
     })
     resData = resPayload and resPayload[0]['Data']
+    logger.debug('Class history info: {}'.format(resData))
 
     # Reply to the request
     invokeLambda(LAMBDAS.LINE, {
@@ -103,6 +113,7 @@ def cmd_classHistory(event):
             'replyMessage': LINE_MESSAGE_TEXTS.CLASS_HISTORY_NO_RECORD
         })
     })
+    logger.debug('Replied with class history info.')
 
 
 # (User) Get class detail records
@@ -118,6 +129,7 @@ def btn_classRecord(event):
         'classIid': re.search('classIid=(.+?)(;|$)', event.postback.data)[1]
     })
     resData = resPayload and resPayload[0]['Data']
+    logger.debug('Class record info: {}'.format(resData))
 
     # Reply to the request
     invokeLambda(LAMBDAS.LINE, {
@@ -131,6 +143,7 @@ def btn_classRecord(event):
             'replyMessage': LINE_MESSAGE_TEXTS.CLASS_RECORD_NO_RECORD
         })
     })
+    logger.debug('Replied with class record info.')
 
 
 postbackHandlerMapping = {

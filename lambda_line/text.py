@@ -9,6 +9,7 @@ class LINE_MESSAGE_TEXTS():
     NEXT_CLASS_RECORD = 'next_class_record'
     FOLLOW_GREETING = 'follow_greeting'
     REMINDER_SUCCESS = 'reminder_success'
+    REMINDER_NO_TARGET = 'reminder_no_target'
 
 
 def messageText(id, content: Dict):
@@ -22,7 +23,8 @@ def messageText(id, content: Dict):
         M.NEXT_CLASS_NO_RECORD: 'We don\'t have record of your next class 😢.',
         M.NEXT_CLASS_RECORD: lambda x: 'Your next class is {classTime} at {classLocation}. Your trainer is {classTrainer} 😉.'.format(**x),
         M.FOLLOW_GREETING: lambda x: 'Hello, {userName} 😄.'.format(**x),
-        M.REMINDER_SUCCESS: lambda x: 'Reminder sent to {remindedInds}.'.format(**x)
+        M.REMINDER_SUCCESS: lambda x: 'Reminder sent to {remindedInds}.'.format(**x),
+        M.REMINDER_NO_TARGET: 'There\'s no target needed reminder 😢.'
     }.get(id, id)
 
     # Delay extracting the content

@@ -21,7 +21,6 @@ def invokeLambda(lambdaName: str, payload: Dict) -> Dict:
     return resPayload
 
 
-# TODO: Include in generic
 # Structured logging
 class LogMsg():
     # Py3.8 new syntax for positional arg

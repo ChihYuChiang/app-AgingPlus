@@ -1,12 +1,15 @@
-const { retrieve } = require('./airtable_retrieve.js');
-const { base } = require('./airtable_connection.js');
-const { sleep } = require('./util.js');
-const args = require('minimist')(process.argv.slice(2));
+import { retrieve } from './airtable_retrieve';
+import { base } from './airtable_connection';
+import { sleep } from './util';
+import minimist from 'minimist';
+
+const args = minimist(process.argv.slice(2));
 //node airtable_clean.js --sheet="Table 9" --field="Name" --value="test"
 
-function cleanEntry(id) {
-  return new Promise((resolve) => {
-    base(args.sheet).destroy([id], (err, deletedRecords) => {
+
+function cleanEntry(id: string) {
+  return new Promise<void>((resolve) => {
+    base(args.sheet).destroy([id], (err: Error, deletedRecords: any) => {
       if (err) {
         console.error(err);
         return;
@@ -15,6 +18,7 @@ function cleanEntry(id) {
     });
   });
 }
+
 
 async function clean() {
   let count = 0;
@@ -28,5 +32,6 @@ async function clean() {
 
   console.log('Deleted', count, 'records.');
 };
+
 
 clean();

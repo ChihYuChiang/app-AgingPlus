@@ -94,4 +94,5 @@ build/
 public/
 .pyenv/
 .vscode/
+.mypy_cache/
 *.zip

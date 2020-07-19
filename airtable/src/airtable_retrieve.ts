@@ -16,7 +16,7 @@ export interface Entry {
 }
 
 
-export function retrieve(targetSheet: string, targetField: string, targetValue: string) {
+export function retrieve(targetSheet: string, targetField: string, targetValue: string): Promise<Entry[]> {
   return new Promise<Entry[]>((resolve, reject) => {
     let table: Entry[] = [];
 

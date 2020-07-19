@@ -5,6 +5,7 @@ import Airtable from 'airtable';
 import { base } from '../src/airtable_connection';
 import { clean } from '../src/airtable_clean';
 import { retrieve } from '../src/airtable_retrieve';
+import { sleep } from '../src/util';
 
 jest.setTimeout(15000);  // 15 secs 
 
@@ -14,8 +15,12 @@ const base_test = new Airtable({ apiKey: cred.Airtable_Test.apiKey }).base(cred.
 jest.mock('../src/airtable_connection');
 base.mockImplementation(base_test);
 
-afterAll(() => {
-  base_test('test_airtable').create([
+beforeEach(async () => {
+  await sleep(2000);
+});
+
+afterAll(async () => {
+  await base_test('test_airtable').create([
     {
       "fields": {
         "Name": "test1",

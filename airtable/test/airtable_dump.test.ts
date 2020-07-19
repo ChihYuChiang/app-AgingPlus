@@ -5,12 +5,17 @@ import csv from 'jquery-csv';
 import Airtable from 'airtable';
 import { base } from '../src/airtable_connection';
 import { dump } from '../src/airtable_dump';
+import { sleep } from '../src/util';
 
 const cred = yaml.safeLoad(fs.readFileSync('../ref/credential.yml', 'utf8'));
 const base_test = new Airtable({ apiKey: cred.Airtable_Test.apiKey }).base(cred.Airtable_Test.baseId);
 
 jest.mock('../src/airtable_connection');
 base.mockImplementation(base_test);
+
+beforeEach(async () => {
+  await sleep(2000);
+});
 
 
 test('dump to file', async () => {

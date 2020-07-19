@@ -2,6 +2,9 @@
   "name": "agingplus_airtable",
   "version": "0.1.0",
   "private": true,
+  "scripts": {
+    "test": "jest --verbose ./test/"
+  },
   "dependencies": {
     "airtable": "^0.7.2",
     "js-yaml": "^3.13.1",

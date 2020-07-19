@@ -4,12 +4,17 @@ import * as yaml from 'js-yaml';
 import Airtable from 'airtable';
 import { base } from '../src/airtable_connection';
 import { retrieve } from '../src/airtable_retrieve';
+import { sleep } from '../src/util';
 
 const cred = yaml.safeLoad(fs.readFileSync('../ref/credential.yml', 'utf8'));
 const base_test = new Airtable({ apiKey: cred.Airtable_Test.apiKey }).base(cred.Airtable_Test.baseId);
 
 jest.mock('../src/airtable_connection');
 base.mockImplementation(base_test);
+
+beforeEach(async () => {
+  await sleep(2000);
+});
 
 
 test('base with good credential', (done) => {

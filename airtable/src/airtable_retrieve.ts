@@ -19,6 +19,7 @@ export interface Entry {
 export function retrieve(targetSheet: string, targetField: string, targetValue: string) {
   return new Promise<Entry[]>((resolve, reject) => {
     let table: Entry[] = [];
+
     base(targetSheet)
       .select({
         view: "Grid view",
@@ -46,14 +47,17 @@ export function retrieve(targetSheet: string, targetField: string, targetValue: 
         // @ts-ignore: airtable typing package seems out of date. This finally callback should be valid.
         function done(err: Error) {
           if (err) {
-            console.error(err);
-            throw err;
+            reject(err);
+            return;
+          } else if (!(targetField in table[0])) {
+            reject(`Column ${targetField} does not exist in ${targetSheet}.`);
+            return;
           }
+          
           let targetEntries = table.filter((entry: Entry) => entry[targetField] === targetValue);
-
           console.log('Retrieved', targetEntries.length, 'records.');
           resolve(targetEntries);
         }
-      );
+      )
   });
 };

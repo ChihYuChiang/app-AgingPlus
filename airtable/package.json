@@ -9,7 +9,7 @@
     "airtable": "^0.7.2",
     "js-yaml": "^3.13.1",
     "json2csv": "^4.5.3",
-    "minimist": "^1.2.5"
+    "minimist": "^1.2.6"
   },
   "devDependencies": {
     "@types/airtable": "^0.8.0",

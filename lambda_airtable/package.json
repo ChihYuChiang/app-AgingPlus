@@ -4,7 +4,7 @@
   "private": true,
   "dependencies": {
     "airtable": "^0.7.2",
-    "moment-timezone": "^0.5.27"
+    "moment-timezone": "^0.5.35"
   },
   "devDependencies": {
     "eslint": "^6.8.0"
